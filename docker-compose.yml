@@ -1,0 +1,108 @@
+# spAIder — docker-compose de DESARROLLO / pruebas en local.
+# Stack: Next.js standalone + PostgreSQL 16.
+#
+# ⚠️ Para EasyPanel usa docker-compose.easypanel.yml, no este.
+# Este publica la app en un puerto del host y está pensado para tu ordenador.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: spaider:latest
+    container_name: spaider-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # La cadena de conexión la construye el compose a partir de DB_PASSWORD.
+      # Un solo canal: así la app y la base de datos no pueden desincronizarse.
+      DATABASE_URL: postgresql://spaider:${DB_PASSWORD:?DB_PASSWORD es obligatorio}@db:5432/spaider
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET es obligatorio}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY es obligatorio}
+      NODE_ENV: production
+      STORAGE_UPLOAD_PATH: /app/storage/uploads
+      # Primer arranque sin seed: crea el ADMIN inicial si la BD está vacía.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - spaider_uploads:/app/storage/uploads
+    networks:
+      - spaider
+
+  db:
+    image: postgres:16-alpine
+    container_name: spaider-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: spaider
+      POSTGRES_USER: spaider
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD es obligatorio}
+    # Postgres solo hace caso a POSTGRES_PASSWORD la primera vez que se crea el
+    # volumen; después la ignora. Si cambias DB_PASSWORD más adelante, la base de
+    # datos se queda con la vieja y la app no puede entrar ("P1000 Authentication
+    # failed"), en bucle y sin salida obvia.
+    # Para que eso no pase: en cada arranque, ya con el servidor levantado,
+    # forzamos que la contraseña del usuario sea la de DB_PASSWORD. Manda siempre
+    # la variable, no el volumen. Es idempotente y no toca los datos.
+    # (El ALTER USER va por el socket local, que la imagen oficial acepta sin
+    # contraseña; de puertas afuera sigue haciendo falta la contraseña.)
+    entrypoint:
+      - sh
+      - -c
+      - |
+        rm -f /tmp/db-password-synced
+        (
+          until pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -h /var/run/postgresql >/dev/null 2>&1; do
+            sleep 1
+          done
+          # OJO con el ALTER USER: la sentencia va por la ENTRADA ESTÁNDAR, no
+          # con -c. Con -c, psql NO sustituye las variables :'pwd' y manda el
+          # texto tal cual, así que esto fallaba SIEMPRE ("syntax error at or
+          # near :") y la red de seguridad no existía. Por stdin sí interpola,
+          # y :'pwd' entrecomilla la contraseña aunque lleve comillas o espacios.
+          sincronizada=0
+          for _ in $$(seq 1 30); do
+            if printf '%s\n' "ALTER USER \"$$POSTGRES_USER\" WITH PASSWORD :'pwd';" \
+                 | psql -q -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" \
+                        -h /var/run/postgresql -v pwd="$$POSTGRES_PASSWORD" \
+                        >/tmp/db-password-sync.log 2>&1; then
+              echo "[db] Contraseña de $$POSTGRES_USER sincronizada con DB_PASSWORD."
+              sincronizada=1
+              break
+            fi
+            sleep 2
+          done
+          # Si no se pudo, se dice claramente. Antes se tragaba el error y el
+          # único síntoma era un arranque 60 segundos más lento.
+          if [ "$$sincronizada" = "0" ]; then
+            echo "[db] AVISO: no se pudo sincronizar la contraseña de $$POSTGRES_USER."
+            echo "[db] Si cambiaste DB_PASSWORD después del primer arranque, la base de datos sigue con la anterior."
+            cat /tmp/db-password-sync.log 2>/dev/null
+          fi
+          touch /tmp/db-password-synced
+        ) &
+        exec docker-entrypoint.sh postgres
+    volumes:
+      - spaider_db:/var/lib/postgresql/data
+    # "Sana" = acepta conexiones Y la contraseña ya está sincronizada, para que
+    # la app no arranque a media sincronización.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spaider -d spaider && test -f /tmp/db-password-synced"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - spaider
+
+volumes:
+  spaider_db:
+  spaider_uploads:
+
+networks:
+  spaider:

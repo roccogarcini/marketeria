@@ -1,0 +1,50 @@
+# Environment
+.env
+.env.local
+.env.production
+.env*.local
+
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+*.tsbuildinfo
+
+# Prisma
+prisma/dev.db
+prisma/dev.db-journal
+prisma/*.db
+prisma/*.db-journal
+# SQLite en cualquier nivel (p.ej. prisma/prisma/dev.db)
+**/*.db
+**/*.db-journal
+
+# Storage (user uploads)
+storage/
+!storage/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml
+
+# Testing / coverage
+coverage/
+.nyc_output/
+
+# Claude local overrides
+.claude/settings.local.json

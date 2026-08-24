@@ -1,0 +1,574 @@
+// SpAIder — Prisma schema
+// Ver design/data_model.md para semántica completa.
+// Convenciones:
+//  - UUID v4 como PK.
+//  - Todo "many" se serializa como JSON en campos xxxJson.
+//  - `BrandProfile` es singleton: id fijo 'default', enforcement en capa de aplicación.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  hashedPassword String
+  name           String
+  role           String    @default("EDITOR") // ADMIN | EDITOR | VIEWER
+  isActive       Boolean   @default(true)
+  // Borrado LÓGICO (soft-delete). "Eliminar" un usuario no borra la fila:
+  // sus contenidos, ideas, versiones, actividades y ejecuciones IA se
+  // conservan intactos (las FK createdById siguen apuntando aquí). Se marca
+  // deletedAt, se desactiva, se anonimiza el email (libera el unique) y se
+  // borran solo sus credenciales (providers, API keys, tokens de reset,
+  // process configs). Un usuario con deletedAt no aparece en el panel ni
+  // puede iniciar sesión.
+  deletedAt      DateTime?
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  llmProviders    LLMProvider[]
+  processConfigs  ProcessConfig[]
+  chatSessions    ChatSession[]
+  ideaComments    IdeaComment[]
+  ideasCreated    Idea[]           @relation("IdeaCreator")
+  ideasDecided    Idea[]           @relation("IdeaDecider")
+  contentsCreated Content[]        @relation("ContentCreator")
+  versionsCreated ContentVersion[] @relation("VersionCreator")
+  activities      Activity[]
+  automationsCreated Automation[]  @relation("AutomationCreator")
+  apiKeys         ApiKey[]
+  passwordResets  PasswordResetToken[]
+}
+
+// Token de recuperación de contraseña. En BD solo el hash SHA-256 del token;
+// el token en claro solo viaja en el email. Un solo uso, caduca en 1h.
+model PasswordResetToken {
+  id          String    @id @default(uuid())
+  userId      String
+  hashedToken String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Tarifa por modelo para calcular el coste del consumo de tokens. Precios en
+// unidades monetarias por MILLÓN de tokens. Editable en Admin → Consumo IA.
+// `source` distingue el origen de la tarifa:
+//   "manual" → puesta/editada por el admin. El refresco automático NO la pisa.
+//   "auto"   → cargada del catálogo público de OpenRouter (refresco diario).
+model ModelPrice {
+  id          String   @id @default(uuid())
+  modelId     String   @unique // id exacto tal como se guarda en AIExecution.modelUsed
+  inputPer1M  Float // coste por 1.000.000 tokens de entrada
+  outputPer1M Float // coste por 1.000.000 tokens de salida
+  currency    String   @default("USD")
+  source      String   @default("manual") // manual | auto
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+// Claves de la API externa (/api/v1 y /api/mcp). La clave completa solo se
+// muestra al crearla; en BD se guarda su hash SHA-256 + un prefijo visible.
+model ApiKey {
+  id          String    @id @default(uuid())
+  name        String
+  prefix      String // primeros caracteres visibles (spk_xxxx…) para identificarla
+  hashedKey   String    @unique // SHA-256 hex de la clave completa
+  scope       String    @default("read") // read | read_write
+  isActive    Boolean   @default(true)
+  createdById String
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([isActive])
+}
+
+// ============================================================
+// PIPELINE — FASE 1 INVESTIGACIÓN
+// ============================================================
+
+model Source {
+  id             String    @id @default(uuid())
+  name           String
+  type           String // MANUAL | URL | RSS | APIFY
+  url            String?
+  /// Plataforma social cuando type=APIFY: INSTAGRAM | TIKTOK | YOUTUBE | FACEBOOK | LINKEDIN | X
+  platform       String?
+  configJson     String? // JSON con headers, selectors, params del Actor (APIFY), etc.
+  /// Identificador ESTABLE de las fuentes creadas desde fuera del panel (API v1
+  /// / MCP). Permite reutilizar la misma Source al repetir la misma
+  /// investigación en vez de crear una nueva cada vez, que es lo que rompía el
+  /// dedupe de hallazgos (filtra por sourceId). null en las fuentes del panel.
+  externalKey    String?   @unique
+  frequencyCron  String? // null = solo manual
+  isActive       Boolean   @default(true)
+  lastFetchedAt  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  findings Finding[]
+}
+
+model Finding {
+  id         String   @id @default(uuid())
+  sourceId   String
+  title      String
+  url        String?
+  snippet    String?
+  summary    String? // Resumen largo (2-4 párrafos) — base para ideación
+  // Texto completo de la pieza original (artículo scrapeado, post íntegro…).
+  // Lo rellena el enriquecimiento; es la materia prima anti-invención de
+  // ideación y producción. Cap ~20k chars.
+  fullContent String?
+  author     String? // Autor de la pieza original
+  publishedAt DateTime? // Fecha de publicación en la fuente (distinta a fetchedAt)
+  reach      Int? // Alcance / impresiones
+  likes      Int? // Reacciones positivas
+  comments   Int? // Comentarios
+  shares     Int? // Compartidos
+  rawPayload String? // JSON stringified de la respuesta de origen
+  fetchedAt  DateTime @default(now())
+  status     String   @default("NEW") // NEW | DISCARDED | SENT_TO_ANALYSIS
+  tagsJson   String?
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([status, fetchedAt])
+  @@index([sourceId])
+  // El dedupe de hallazgos (una URL por fuente) lo garantiza la BD, no un
+  // findFirst previo: entre leer y escribir había una ventana en la que dos
+  // fetches simultáneos de la misma fuente insertaban el mismo hallazgo.
+  // `url` null no colisiona (semántica NULL de Postgres): los hallazgos sin
+  // URL siguen sin deduplicarse, igual que antes.
+  @@unique([sourceId, url])
+}
+
+// ============================================================
+// PIPELINE — FASE 2 ANÁLISIS E INTELIGENCIA
+// ============================================================
+
+model AnalysisRun {
+  id             String   @id @default(uuid())
+  name           String?
+  agentId        String?
+  findingIdsJson String // JSON array de finding.id
+  modelUsed      String?
+  executionMode  String   @default("API") // siempre "API"
+  status         String   @default("RUNNING") // RUNNING | SUCCESS | ERROR
+  summary        String?
+  durationMs     Int?
+  errorMessage   String?
+  createdAt      DateTime @default(now())
+
+  agent    Agent?    @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  insights Insight[]
+
+  @@index([status, createdAt])
+}
+
+model Insight {
+  id              String   @id @default(uuid())
+  analysisRunId   String
+  title           String
+  description     String
+  relevanceScore  Float    @default(0)
+  opportunityType String? // TREND | ANGLE | GAP | RISK
+  tagsJson        String?
+  clustersJson    String?
+  createdAt       DateTime @default(now())
+
+  analysisRun AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+  ideas       Idea[]
+
+  @@index([relevanceScore])
+  @@index([analysisRunId])
+}
+
+// ============================================================
+// PIPELINE — FASE 3 GESTIÓN DE IDEAS
+// ============================================================
+
+model Idea {
+  id          String    @id @default(uuid())
+  insightId   String?
+  title       String
+  angle       String?
+  rationale   String?
+  status      String    @default("DRAFT") // DRAFT | PROPOSED | APPROVED | REJECTED | ARCHIVED
+  feedback    String?
+  // Scoring editorial (0..1). Se derivan al promocionar desde un insight.
+  // No se editan manualmente desde el detalle de la idea.
+  viralityScore   Float?
+  viralityReason  String?   // Párrafo corto: por qué este contenido puede ser viral.
+  potentialScore  Float?
+  potentialReason String?   // Párrafo corto: dónde y por qué es potencial.
+  idealFormat     String?   // ej. "LinkedIn carrusel", "Newsletter", "Post blog", "Thread X"
+  // URL de referencia: origen del hallazgo/insight que inspiró la idea,
+  // o link de contexto que el editor quiera tener a mano.
+  referenceUrl    String?
+  decidedById String?
+  decidedAt   DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  insight   Insight?      @relation(fields: [insightId], references: [id], onDelete: SetNull)
+  createdBy User          @relation("IdeaCreator", fields: [createdById], references: [id])
+  decidedBy User?         @relation("IdeaDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  comments  IdeaComment[]
+  contents  Content[]
+
+  @@index([status, updatedAt])
+}
+
+model IdeaComment {
+  id        String   @id @default(uuid())
+  ideaId    String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ideaId])
+}
+
+// ============================================================
+// PIPELINE — FASE 4 PRODUCCIÓN (CON MARCA)
+// ============================================================
+
+// Singleton: en tiempo de ejecución siempre id = 'default'.
+// La API admite solo GET y PUT (upsert); no se crean ni borran otros registros.
+model BrandProfile {
+  id                  String   @id
+  name                String
+  tone                String?
+  voice               String?
+  audience            String?
+  editorialLinesJson  String? // JSON array
+  mustAvoid           String?
+  // Identidad visual en texto libre: colores (hex), tipografía/estilo, handle,
+  // claim… Se inyecta en los prompts de diseño (carruseles y adaptación a
+  // canal) para que las creaciones salgan con la imagen de la marca.
+  visualIdentity      String?
+  // Logo pequeño (estilo favicon) como data URI base64 (png/jpeg/webp, ≤200KB).
+  // NO pasa por el LLM: el diseño usa el marcador __BRAND_LOGO__ y el servidor
+  // lo sustituye por esta imagen al guardar la creación.
+  logoDataUri         String?
+  updatedAt           DateTime @updatedAt
+}
+
+model Content {
+  id             String   @id @default(uuid())
+  ideaId         String
+  title          String
+  body           String // markdown
+  status         String   @default("DRAFT") // DRAFT | IN_REVIEW | APPROVED | REJECTED
+  currentVersion Int      @default(1)
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  idea      Idea             @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  createdBy User             @relation("ContentCreator", fields: [createdById], references: [id])
+  versions  ContentVersion[]
+  assets    Asset[]
+
+  @@index([ideaId])
+  @@index([status, updatedAt])
+}
+
+model ContentVersion {
+  id          String   @id @default(uuid())
+  contentId   String
+  version     Int
+  body        String
+  notes       String?
+  isMilestone Boolean  @default(false)
+  createdById String
+  createdAt   DateTime @default(now())
+
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  createdBy User    @relation("VersionCreator", fields: [createdById], references: [id])
+
+  @@unique([contentId, version])
+  @@index([contentId])
+}
+
+// ============================================================
+// PIPELINE — FASE 5 GESTIÓN DE SOPORTES
+// ============================================================
+
+model Channel {
+  id               String  @id @default(uuid())
+  name             String
+  type             String // LINKEDIN | BLOG | NEWSLETTER | INSTAGRAM | TWITTER | CAROUSEL | CUSTOM
+  constraintsJson  String? // {maxLength, format, tone, ...}
+  templateMarkdown String? // Ejemplo de output / estilo (se incluye en el prompt)
+  systemPrompt     String? // Reglas de generación — se envía como system message
+  // Agente asignado: su systemPrompt manda al generar la creación de este
+  // canal (el systemPrompt del canal, si existe, se añade como reglas extra).
+  agentId          String?
+  isActive         Boolean @default(true)
+  sortOrder        Int     @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  agent  Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  assets Asset[]
+}
+
+model Asset {
+  id             String    @id @default(uuid())
+  contentId      String
+  channelId      String
+  body           String // markdown adaptado
+  mediaPathsJson String? // JSON array de paths relativos
+  status         String    @default("PENDING") // PENDING | READY | SCHEDULED | PUBLISHED
+  scheduledAt    DateTime?
+  notes          String?
+  // Mismo significado que en ChatMessage: "API" = generado por el LLM,
+  // null = creado a mano sin IA.
+  aiExecutionMode String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([contentId, channelId])
+  @@index([status])
+}
+
+// ============================================================
+// MÓDULOS — AGENTES Y EJECUCIÓN IA
+// ============================================================
+
+model Agent {
+  id               String   @id @default(uuid())
+  slug             String   @unique
+  name             String
+  role             String
+  systemPrompt     String
+  allowedToolsJson String?
+  providerId       String?
+  modelId          String?
+  temperature      Float    @default(0.7)
+  maxTokens        Int      @default(2000)
+  icon             String? // lucide icon name
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  provider    LLMProvider?  @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  analysisRuns AnalysisRun[]
+  executions  AIExecution[]
+  channels    Channel[]
+}
+
+model LLMProvider {
+  id              String   @id @default(uuid())
+  userId          String
+  providerType    String // OPENAI | ANTHROPIC | OPENROUTER | CUSTOM | ZAI | DEEPSEEK | GEMINI | APIFY | YOUTUBE | TAVILY
+  displayName     String
+  encryptedApiKey String // AES-256-GCM
+  baseUrl         String?
+  defaultModel    String? // modelo por defecto de este proveedor (si null, usa el del sistema)
+  isActive        Boolean  @default(true)
+  // Marca el proveedor LLM predeterminado para la Investigación IA en modo
+  // Automático. Como máximo uno por usuario (enforcement en capa de aplicación).
+  isDefaultResearch Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processConfigs ProcessConfig[]
+  agents         Agent[]
+
+  // Antes era único por (userId, providerType) → un solo proveedor por tipo.
+  // Ahora se permite más de uno del mismo tipo (p. ej. dos z.ai: coding y
+  // estándar); se distinguen por nombre, único por usuario.
+  @@unique([userId, displayName])
+}
+
+model ProcessConfig {
+  id                 String   @id @default(uuid())
+  userId             String
+  processType        String // RESEARCH | ANALYSIS | IDEATION | PRODUCTION | ASSET | CHAT
+  providerId         String
+  modelId            String
+  temperature        Float    @default(0.7)
+  maxTokens          Int      @default(2000)
+  systemPrompt       String?
+  userPromptTemplate String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider LLMProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, processType])
+}
+
+model AIExecution {
+  id            String   @id @default(uuid())
+  phase         String // RESEARCH | ANALYSIS | IDEATION | PRODUCTION | ASSET | CHAT
+  agentId       String?
+  refType       String? // "ANALYSIS_RUN" | "CONTENT" | "ASSET" | ...
+  refId         String?
+  executionMode String // siempre "API"
+  modelUsed     String?
+  inputTokens   Int?
+  outputTokens  Int?
+  durationMs    Int?
+  status        String   @default("RUNNING") // RUNNING | SUCCESS | ERROR
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+
+  agent Agent? @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([phase, createdAt])
+  @@index([refType, refId])
+  @@index([executionMode, status])
+  // El corte por presupuesto agrega el gasto del mes filtrando SOLO por
+  // createdAt (sin phase), y lo hace antes de CADA llamada al LLM: sin este
+  // índice sería un seq scan de toda la tabla cada vez.
+  @@index([createdAt])
+}
+
+// ============================================================
+// MÓDULOS — AUTOMATIZACIONES
+// ============================================================
+
+model Automation {
+  id          String    @id @default(uuid())
+  name        String
+  triggerType String // MANUAL | SCHEDULED
+  cron        String?
+  targetType  String // SOURCE | ANALYSIS | PRODUCTION | ASSET
+  paramsJson  String?
+  isActive    Boolean   @default(true)
+  lastRunAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  // Dueño de las credenciales (Apify/YouTube/IA) usadas en ejecuciones programadas.
+  createdById String?
+  createdBy   User?     @relation("AutomationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  runs AutomationRun[]
+}
+
+model AutomationRun {
+  id           String    @id @default(uuid())
+  automationId String
+  status       String    @default("RUNNING") // RUNNING | SUCCESS | ERROR
+  logsText     String?
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId, startedAt])
+}
+
+// ============================================================
+// MÓDULOS — CHAT
+// ============================================================
+
+model ChatSession {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model ChatMessage {
+  id              String   @id @default(uuid())
+  sessionId       String
+  role            String // user | assistant | system
+  content         String
+  tokens          Int?
+  contextRefsJson String?
+  // Cómo se generó este mensaje:
+  //   "API"  → llamada al LLM
+  //   null   → mensaje de quien escribe o de sistema (no generado por IA)
+  // Permite renderizar un badge en UI con la trazabilidad real de cada mensaje.
+  aiExecutionMode String?
+  createdAt       DateTime @default(now())
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+}
+
+// ============================================================
+// ADMIN / OBSERVABILIDAD
+// ============================================================
+
+model AppSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String // JSON
+  category  String // general | ai | automations | storage
+  updatedAt DateTime @updatedAt
+}
+
+model Activity {
+  id         String   @id @default(uuid())
+  userId     String?
+  entityType String
+  entityId   String
+  action     String
+  metaJson   String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+}
+
+// ============================================================
+// COPIAS DE SEGURIDAD
+// ============================================================
+
+/// Registro de cada intento de copia de seguridad o restauración (ok/fallo,
+/// tamaño, duración). Lo consulta la UI de "Copias de seguridad".
+model BackupRun {
+  id         String    @id @default(uuid())
+  kind       String // auto | manual | restore
+  status     String // ok | error
+  objectKey  String? // clave en el bucket (spaider/<fecha>.dump.enc)
+  sizeBytes  BigInt? // tamaño del blob cifrado subido
+  durationMs Int?
+  error      String?
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([startedAt])
+  @@index([kind, startedAt])
+}

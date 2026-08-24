@@ -1,0 +1,152 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# spAIder — docker-compose para EasyPanel (self-service, 1-clic).
+#
+# Este es el fichero que se le indica a EasyPanel al crear el servicio
+# (Add Service → Compose → Compose File: docker-compose.easypanel.yml).
+# Es el mismo espíritu que el docker-compose.yml de desarrollo, pero endurecido
+# para producción:
+#   - Todos los secretos vienen del entorno (Environment de EasyPanel). Sin
+#     valores por defecto que funcionen: si falta uno obligatorio, el despliegue
+#     se para y dice cuál falta, en vez de arrancar mal y fallar más tarde.
+#   - La base de datos NO se publica al host: solo la ve la app por red interna.
+#   - La app arranca SIN claves de IA (modo degradado). Las de OpenAI, Apify,
+#     YouTube y demás se pegan luego desde el panel de admin, sin redesplegar.
+#
+# Guía paso a paso: ver DEPLOY_EASYPANEL.md
+# Variables: ver .env.example (cópialo, rellénalo y pégalo en EasyPanel → Env).
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  db:
+    # postgres:16. La versión importa: la app lleva dentro el cliente pg_dump 17
+    # para las copias de seguridad, y el cliente tiene que ser igual o más nuevo
+    # que el servidor. Con un Postgres 18 las copias fallan. Lo probado es la 16.
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: spaider
+      POSTGRES_USER: spaider
+      # Obligatoria: la pone EasyPanel en Environment (ver .env.example).
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD es obligatorio}
+    # Postgres solo hace caso a POSTGRES_PASSWORD la primera vez que se crea el
+    # volumen; después la ignora. Si cambias DB_PASSWORD más adelante, la base de
+    # datos se queda con la vieja, la app no puede entrar ("P1000 Authentication
+    # failed") y el contenedor se reinicia en bucle sin salida obvia.
+    # Para que eso no pase nunca: en cada arranque, ya con el servidor levantado,
+    # forzamos que la contraseña del usuario sea la de DB_PASSWORD. Manda siempre
+    # la variable, no el volumen. Es idempotente y no toca los datos.
+    # (El ALTER USER va por el socket local, que la imagen oficial acepta sin
+    # contraseña; de puertas afuera sigue haciendo falta la contraseña.)
+    # El script es POSIX sh a propósito, para que valga igual en postgres:16 y en
+    # postgres:16-alpine (alpine no trae bash).
+    entrypoint:
+      - sh
+      - -c
+      - |
+        rm -f /tmp/db-password-synced
+        (
+          until pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -h /var/run/postgresql >/dev/null 2>&1; do
+            sleep 1
+          done
+          # OJO con el ALTER USER: la sentencia va por la ENTRADA ESTÁNDAR, no
+          # con -c. Con -c, psql NO sustituye las variables :'pwd' y manda el
+          # texto tal cual, así que esto fallaba SIEMPRE ("syntax error at or
+          # near :") y la red de seguridad no existía. Por stdin sí interpola,
+          # y :'pwd' entrecomilla la contraseña aunque lleve comillas o espacios.
+          synced=0
+          for _ in $$(seq 1 30); do
+            if printf '%s\n' "ALTER USER \"$$POSTGRES_USER\" WITH PASSWORD :'pwd';" \
+                 | psql -q -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" \
+                        -h /var/run/postgresql -v pwd="$$POSTGRES_PASSWORD" \
+                        >/tmp/db-password-sync.log 2>&1; then
+              echo "[db] Contraseña de $$POSTGRES_USER sincronizada con DB_PASSWORD."
+              synced=1
+              break
+            fi
+            sleep 2
+          done
+          # Si no se ha conseguido, hay que decirlo: el marcador se pone igual
+          # (ver abajo) y sin este aviso la app fallaría con P1000 sin pista de
+          # por qué. El entrypoint de la app manda a mirar precisamente aquí.
+          if [ "$$synced" != "1" ]; then
+            echo "[db] AVISO: NO se ha podido sincronizar la contraseña de $$POSTGRES_USER con DB_PASSWORD."
+            echo "[db] AVISO: si la app se para con 'P1000 Authentication failed', la causa es esta."
+            cat /tmp/db-password-sync.log 2>/dev/null
+          fi
+          # El marcador se pone pase lo que pase: sirve para que la app no
+          # arranque a media sincronización, no para bloquear el despliegue.
+          touch /tmp/db-password-synced
+        ) &
+        exec docker-entrypoint.sh postgres
+    volumes:
+      - spaider_db:/var/lib/postgresql/data
+    # "Sana" = acepta conexiones Y la contraseña ya está sincronizada. Así la app
+    # (que espera a este healthcheck) nunca arranca a medias.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spaider -d spaider && test -f /tmp/db-password-synced"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # ⚠️ UNA SOLA INSTANCIA. No subir este número.
+    # Los cron de las Automatizaciones viven dentro de este mismo proceso, y los
+    # topes de login, la cola de exportación PNG y el refresco de precios son
+    # contadores en memoria. Con dos réplicas se duplican sin dar ningún error
+    # visible. Si se queda corto, sube CPU y RAM del contenedor.
+    deploy:
+      replicas: 1
+    environment:
+      NODE_ENV: production
+      # La cadena de conexión la construye el compose a partir de DB_PASSWORD.
+      # NO se declara DATABASE_URL en las variables de EasyPanel: un solo canal,
+      # una sola contraseña, imposible que db y app se desincronicen.
+      DATABASE_URL: postgresql://spaider:${DB_PASSWORD:?DB_PASSWORD es obligatorio}@db:5432/spaider
+      # Secretos obligatorios (sin default: si faltan, el despliegue se para).
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET es obligatorio}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY es obligatorio}
+      # URL pública. Tiene que ser idéntica a la dirección por la que entras, o
+      # el login te expulsa al momento. Sin barra final.
+      NEXTAUTH_URL: ${NEXTAUTH_URL:?NEXTAUTH_URL es obligatorio}
+      # Ficheros subidos: al volumen persistente.
+      STORAGE_UPLOAD_PATH: /app/storage/uploads
+      # Zona horaria con la que se leen los cron de las Automatizaciones.
+      CRON_TZ: ${CRON_TZ:-Europe/Madrid}
+      # Proxies de confianza delante de la app. En EasyPanel hay uno (Traefik).
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+      # Administrador del primer arranque: solo se crea si la tabla de usuarios
+      # está vacía. Se dejan opcionales a propósito, porque la guía dice que se
+      # pueden borrar después del primer login; si fueran obligatorias, el
+      # siguiente despliegue fallaría por haberlas quitado.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # NOTA: las claves de IA y de integraciones (OpenAI, Apify, YouTube…) NO
+      # van aquí. Se guardan cifradas en la base de datos desde Admin →
+      # Proveedores, y no hacen falta para desplegar.
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - spaider_uploads:/app/storage/uploads
+    # En EasyPanel: asigna el Dominio a ESTE servicio, puerto 3000.
+    # EasyPanel gestiona el HTTPS. No publiques puertos al host.
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # El primer arranque aplica todas las migraciones y crea el admin: en un
+      # servidor modesto eso puede pasar del minuto. Con un margen corto, el
+      # despliegue se daba por fallido cuando en realidad solo iba lento.
+      start_period: 180s
+
+volumes:
+  spaider_db:
+  spaider_uploads:
