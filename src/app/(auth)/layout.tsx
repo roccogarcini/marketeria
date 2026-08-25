@@ -3,19 +3,21 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 // Bocadillos flotantes del login: SUBEN de abajo arriba. Delays negativos para
 // que arranquen ya a media subida (sin parón). Solo en escritorio.
+// `hot` = bocadillo en lima. Solo UNO: con tres, la mitad de la pantalla se
+// iba en acento y dejaba de serlo (regla 80/15/5 del manual).
 const PILLS: { text: string; x: string; duration: string; delay: string; hot?: boolean }[] = [
-  { text: "Hallazgo capturado", x: "9%", duration: "22s", delay: "-2s", hot: true },
+  { text: "Hallazgo capturado", x: "6%", duration: "22s", delay: "-2s" },
   { text: "Idea aprobada · Newsletter", x: "80%", duration: "26s", delay: "-13s" },
-  { text: "3 fuentes nuevas", x: "16%", duration: "24s", delay: "-18s" },
-  { text: "Carrusel listo para revisar", x: "84%", duration: "28s", delay: "-8s", hot: true },
-  { text: "Investigación · lunes 08:00", x: "12%", duration: "30s", delay: "-24s", hot: true },
-  { text: "Publicado en LinkedIn", x: "74%", duration: "25s", delay: "-15s" },
+  { text: "3 fuentes nuevas", x: "20%", duration: "24s", delay: "-18s" },
+  { text: "Carrusel listo para revisar", x: "86%", duration: "28s", delay: "-8s", hot: true },
+  { text: "Investigación · lunes 08:00", x: "9%", duration: "30s", delay: "-24s" },
+  { text: "Publicado en LinkedIn", x: "70%", duration: "25s", delay: "-15s" },
 ];
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
-      {/* Escenario animado: blobs lima a la deriva + grano de papel + pauta */}
+      {/* Escenario animado: blobs a la deriva + grano de papel + pauta */}
       <div className="auth-stage" aria-hidden>
         <div className="auth-lines" />
         <div className="auth-blob auth-blob-1" />
