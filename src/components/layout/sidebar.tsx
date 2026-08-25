@@ -11,6 +11,30 @@ import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "spaider:sidebar-collapsed";
 
+function BotonColapsar({
+  collapsed,
+  onClick,
+}: {
+  collapsed: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
+      title={collapsed ? "Expandir" : "Colapsar"}
+      className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+    >
+      {collapsed ? (
+        <PanelLeftOpen className="h-[18px] w-[18px]" />
+      ) : (
+        <PanelLeftClose className="h-[18px] w-[18px]" />
+      )}
+    </button>
+  );
+}
+
 export function Sidebar({
   user,
 }: {
@@ -44,34 +68,24 @@ export function Sidebar({
         collapsed ? "w-16" : "w-60",
       )}
     >
-      {/* Cabecera: logo + wordmark + botón de colapsar */}
-      <div
-        className={cn(
-          "flex pb-4 pt-[18px]",
-          collapsed ? "flex-col items-center gap-3 px-0" : "items-center gap-3 px-5",
-        )}
-      >
+      {/* Cabecera: logotipo arriba, a todo el ancho, y el botón de colapsar en
+          la línea del subtítulo. Compartiendo fila con el botón, al logo solo
+          le quedaban 122px de los 200 útiles; así se lleva los 200 enteros. */}
+      <div className={cn("pb-4 pt-[18px]", collapsed ? "px-0" : "px-5")}>
         {collapsed ? (
-          <MarketeriaMark className="h-9" />
-        ) : (
-          <div className="min-w-0 flex-1">
-            <MarketeriaWordmark className="h-[40px]" priority />
-            <p className="mt-1.5 text-[11px] text-muted-foreground">Pipeline editorial</p>
+          <div className="flex flex-col items-center gap-3">
+            <MarketeriaMark className="h-10" />
+            <BotonColapsar collapsed={collapsed} onClick={toggle} />
           </div>
+        ) : (
+          <>
+            <MarketeriaWordmark className="h-[62px]" priority />
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="text-[11px] text-muted-foreground">Pipeline editorial</p>
+              <BotonColapsar collapsed={collapsed} onClick={toggle} />
+            </div>
+          </>
         )}
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
-          title={collapsed ? "Expandir" : "Colapsar"}
-          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="h-[18px] w-[18px]" />
-          ) : (
-            <PanelLeftClose className="h-[18px] w-[18px]" />
-          )}
-        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto py-2">
