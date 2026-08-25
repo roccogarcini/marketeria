@@ -10,7 +10,9 @@ const createSchema = z.object({
   // busca en la web (nativo o vía Tavily) y crea hallazgos. Brief en configJson.
   // WORDPRESS = entradas de un sitio WordPress vía su REST API pública
   // (/wp-json/wp/v2/posts). `url` es la raíz del sitio; opciones en configJson.
-  // El tipo MANUAL no se ofrece en el alta; las existentes siguen siendo legibles.
+  // El tipo MANUAL no se ofrece en el alta; las existentes siguen siendo
+  // legibles. WHATSAPP tampoco: esa fuente la crea el propio webhook la
+  // primera vez que entra un mensaje.
   type: z.enum(["URL", "RSS", "APIFY", "YOUTUBE", "AI_RESEARCH", "WORDPRESS"]),
   url: z.string().url().max(1000).optional().nullable(),
   platform: z

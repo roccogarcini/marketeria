@@ -207,6 +207,14 @@ export async function runSourceFetch(
   try {
     if (source.type === "MANUAL") {
       // no-op
+    } else if (source.type === "WHATSAPP") {
+      // Fuente de ENTRADA: los mensajes llegan por webhook, no se van a
+      // buscar. "Refrescar" no tiene nada que hacer aquí, y decirlo es mejor
+      // que un 0 hallazgos que parece un fallo.
+      throw new Error(
+        "WhatsApp es una fuente de entrada: los mensajes llegan solos por el " +
+          "webhook. No hay nada que refrescar a mano.",
+      );
     } else if (source.type === "URL") {
       if (!source.url) throw new Error("URL sin url configurada");
       const html = await fetchWithTimeout(source.url);

@@ -37,9 +37,18 @@ export function isUniqueViolation(err: unknown): boolean {
 export async function createFindingIfNew(
   data: Prisma.FindingUncheckedCreateInput,
 ): Promise<boolean> {
-  if (data.url) {
+  // Dos claves de dedupe, cada una con su índice único: la URL para lo que se
+  // sale a buscar (RSS, WordPress, scraping) y el `externalId` para lo que
+  // entra por webhook, que no trae URL y que el proveedor reenvía "al menos
+  // una vez" (Meta lo hace hasta que le respondes 200).
+  const clave = data.externalId
+    ? { sourceId: data.sourceId, externalId: data.externalId }
+    : data.url
+      ? { sourceId: data.sourceId, url: data.url }
+      : null;
+  if (clave) {
     const existing = await prisma.finding.findFirst({
-      where: { sourceId: data.sourceId, url: data.url },
+      where: clave,
       select: { id: true },
     });
     if (existing) return false;

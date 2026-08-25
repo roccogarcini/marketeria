@@ -5,6 +5,8 @@ import { BACKUP_SETTING_KEYS } from "@/lib/backups/service";
 import { SettingsEditor } from "./settings-editor";
 import { GoogleAuthSection } from "./google-auth-section";
 import { SmtpSection } from "./smtp-section";
+import { WhatsAppSection } from "./whatsapp-section";
+import { WHATSAPP_SETTING_KEYS, getWhatsAppConfig } from "@/lib/whatsapp/config";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +24,19 @@ export default async function SettingsAdminPage() {
     ...GOOGLE_SETTING_KEYS,
     ...SMTP_SETTING_KEYS,
     ...BACKUP_SETTING_KEYS,
+    ...WHATSAPP_SETTING_KEYS,
   ];
 
-  const [settings, googleAuth, smtp] = await Promise.all([
+  const [settings, googleAuth, smtp, whatsapp, whatsappSource] = await Promise.all([
     prisma.appSetting.findMany({ orderBy: { key: "asc" } }),
     getGoogleAuthAdminView(),
     getSmtpConfig(),
+    getWhatsAppConfig(),
+    prisma.source.findFirst({
+      where: { type: "WHATSAPP" },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, _count: { select: { findings: true } } },
+    }),
   ]);
   // `/+$`, no `/$`: con más de una barra final quedaría una dirección de
   // retorno con doble barra, y esa es la que se copia y se pega en Google.
@@ -38,12 +47,26 @@ export default async function SettingsAdminPage() {
       <header>
         <h1 className="display-md">Ajustes</h1>
         <p className="text-sm text-muted-foreground">
-          Acceso con Google, email (SMTP) y ajustes avanzados. El presupuesto de
-          IA se configura en Consumo IA y las copias en Copias de seguridad.
+          Acceso con Google, email (SMTP), entrada de WhatsApp y ajustes
+          avanzados. El presupuesto de IA se configura en Consumo IA y las
+          copias en Copias de seguridad.
         </p>
       </header>
       <GoogleAuthSection initial={googleAuth} origin={origin} />
       <SmtpSection initial={smtp} />
+      <WhatsAppSection
+        initial={whatsapp}
+        source={
+          whatsappSource
+            ? {
+                id: whatsappSource.id,
+                name: whatsappSource.name,
+                findings: whatsappSource._count.findings,
+              }
+            : null
+        }
+        origin={origin}
+      />
       <SettingsEditor
         initial={settings
           .filter((s) => !HIDDEN_KEYS.includes(s.key))

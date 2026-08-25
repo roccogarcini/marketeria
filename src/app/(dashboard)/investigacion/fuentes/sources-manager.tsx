@@ -91,6 +91,8 @@ function labelFor(s: Source): string {
   if (s.type === "APIFY") return KIND_META.APIFY.label;
   if (s.type === "URL" || s.type === "RSS") return KIND_META.WEB.label;
   if (s.type === "WORDPRESS") return KIND_META.WORDPRESS.label;
+  // No está en KIND_META: no se da de alta a mano, la crea el webhook.
+  if (s.type === "WHATSAPP") return "WhatsApp (entrada)";
   if (s.type === "MANUAL") return "Manual (legacy)";
   if (s.type === "YOUTUBE") return "YouTube (Data API)";
   return s.type;

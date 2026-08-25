@@ -50,6 +50,12 @@ export const authConfig = {
       const isHealth = pathname === "/api/health";
       if (isAuthApi || isHealth) return true;
 
+      // Webhooks de entrada (WhatsApp): los llama el proveedor, sin sesión.
+      // No van sin protección: cada uno verifica su propio secreto (verify
+      // token en el alta, firma HMAC del cuerpo en cada evento) y falla
+      // cerrado si no está configurado.
+      if (pathname.startsWith("/api/webhooks/")) return true;
+
       // API externa (/api/v1/**) y servidor MCP (/api/mcp, /api/sse,
       // /api/message): autentican por API key en el propio handler
       // (requireApiKey/verifyApiKey), no por sesión.

@@ -131,6 +131,11 @@ model Finding {
   sourceId   String
   title      String
   url        String?
+  /// Identificador del mensaje/pieza en el sistema de origen (el wamid de
+  /// WhatsApp, el id del mensaje de Discord…). Es lo que deduplica las fuentes
+  /// de entrada: llegan por webhook, Meta reenvía "al menos una vez" y no
+  /// traen URL, así que el índice de (sourceId, url) no las cubre.
+  externalId String?
   snippet    String?
   summary    String? // Resumen largo (2-4 párrafos) — base para ideación
   // Texto completo de la pieza original (artículo scrapeado, post íntegro…).
@@ -158,6 +163,7 @@ model Finding {
   // `url` null no colisiona (semántica NULL de Postgres): los hallazgos sin
   // URL siguen sin deduplicarse, igual que antes.
   @@unique([sourceId, url])
+  @@unique([sourceId, externalId])
 }
 
 // ============================================================
