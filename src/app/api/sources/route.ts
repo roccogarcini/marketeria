@@ -8,8 +8,10 @@ const createSchema = z.object({
   name: z.string().min(1).max(200),
   // AI_RESEARCH = investigación IA: brief en lenguaje natural; al refrescar,
   // busca en la web (nativo o vía Tavily) y crea hallazgos. Brief en configJson.
+  // WORDPRESS = entradas de un sitio WordPress vía su REST API pública
+  // (/wp-json/wp/v2/posts). `url` es la raíz del sitio; opciones en configJson.
   // El tipo MANUAL no se ofrece en el alta; las existentes siguen siendo legibles.
-  type: z.enum(["URL", "RSS", "APIFY", "YOUTUBE", "AI_RESEARCH"]),
+  type: z.enum(["URL", "RSS", "APIFY", "YOUTUBE", "AI_RESEARCH", "WORDPRESS"]),
   url: z.string().url().max(1000).optional().nullable(),
   platform: z
     .enum(["INSTAGRAM", "TIKTOK", "YOUTUBE", "FACEBOOK", "LINKEDIN", "X"])
@@ -38,8 +40,16 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
-  if ((parsed.data.type === "URL" || parsed.data.type === "RSS") && !parsed.data.url) {
-    return NextResponse.json({ error: "url requerido para tipo URL/RSS" }, { status: 400 });
+  if (
+    (parsed.data.type === "URL" ||
+      parsed.data.type === "RSS" ||
+      parsed.data.type === "WORDPRESS") &&
+    !parsed.data.url
+  ) {
+    return NextResponse.json(
+      { error: "url requerido para tipo URL/RSS/WORDPRESS" },
+      { status: 400 },
+    );
   }
   if (parsed.data.type === "APIFY") {
     if (!parsed.data.configJson) {

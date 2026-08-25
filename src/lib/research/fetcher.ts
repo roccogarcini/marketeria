@@ -19,6 +19,7 @@ import {
   normalizeYouTubeVideo,
 } from "@/lib/youtube/client";
 import { runAIResearch } from "./ai-research";
+import { buildPostsUrl, parsePostsResponse, type WordPressConfig } from "./wordpress";
 import { createFindingIfNew } from "./findings";
 import { assertPublicUrl } from "@/lib/net/ssrf-guard";
 import { fetchWithRetry } from "@/lib/net/retry";
@@ -28,6 +29,8 @@ import { fetchWithRetry } from "@/lib/net/retry";
  *  - MANUAL       → no-op (la captura se hace desde UI).
  *  - URL          → descarga HTML y crea un Finding con título+snippet.
  *  - RSS          → parsea el feed y crea Findings (dedupe por url).
+ *  - WORDPRESS    → lee /wp-json/wp/v2/posts del sitio y crea un Finding por
+ *                   entrada, con el cuerpo completo ya incluido.
  *  - APIFY        → llama al actor configurado y mapea cada item a Finding.
  *  - YOUTUBE      → busca vía Data API y mapea cada vídeo a Finding.
  *  - AI_RESEARCH  → investigación IA: brief → búsqueda web (nativa o Tavily)
@@ -397,6 +400,28 @@ export async function runSourceFetch(
           title,
           url,
           snippet,
+          status: "NEW",
+        });
+        if (created) outcome.created++;
+        else outcome.skipped++;
+      }
+    } else if (source.type === "WORDPRESS") {
+      if (!source.url) throw new Error("WORDPRESS sin url del sitio");
+      const wpCfg = parseSourceConfig<WordPressConfig>(source);
+      // Misma descarga que RSS/URL: guard anti-SSRF, timeout, tope de bytes y
+      // reintento ante 429/5xx. La API de WordPress es pública y sin clave.
+      const body = await fetchWithTimeout(buildPostsUrl(source.url, wpCfg));
+      for (const post of parsePostsResponse(body)) {
+        const created = await createFindingIfNew({
+          sourceId: source.id,
+          title: post.title,
+          url: post.url,
+          snippet: post.snippet,
+          // WordPress ya da el cuerpo entero: no hace falta enriquecer después
+          // descargando la página, que es lo que toca con RSS.
+          fullContent: post.fullContent,
+          author: post.author,
+          publishedAt: post.publishedAt,
           status: "NEW",
         });
         if (created) outcome.created++;

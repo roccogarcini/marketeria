@@ -23,6 +23,7 @@ import {
   Globe,
   Pencil,
   Telescope,
+  Newspaper,
 } from "lucide-react";
 import {
   PLATFORM_LIST,
@@ -53,7 +54,7 @@ type Source = {
  * (Data API) no tiene UI de alta: funciona, pero la recomendación es usar
  * Apify con plataforma=YouTube.
  */
-type Kind = "AI_RESEARCH" | "APIFY" | "WEB";
+type Kind = "AI_RESEARCH" | "APIFY" | "WEB" | "WORDPRESS";
 
 const KIND_META: Record<
   Kind,
@@ -74,6 +75,11 @@ const KIND_META: Record<
     icon: Globe,
     help: "Apunta a un feed RSS o a una URL concreta. Al refrescar, trae lo nuevo del sitio.",
   },
+  WORDPRESS: {
+    label: "WordPress",
+    icon: Newspaper,
+    help: "Lee las entradas por la API del propio WordPress: cuerpo completo, autor y fecha reales.",
+  },
 };
 
 /**
@@ -84,6 +90,7 @@ function labelFor(s: Source): string {
   if (s.type === "AI_RESEARCH") return KIND_META.AI_RESEARCH.label;
   if (s.type === "APIFY") return KIND_META.APIFY.label;
   if (s.type === "URL" || s.type === "RSS") return KIND_META.WEB.label;
+  if (s.type === "WORDPRESS") return KIND_META.WORDPRESS.label;
   if (s.type === "MANUAL") return "Manual (legacy)";
   if (s.type === "YOUTUBE") return "YouTube (Data API)";
   return s.type;
@@ -124,6 +131,9 @@ export function SourcesManager({ initial }: { initial: Source[] }) {
     // RSSHub helper
     rsshubTemplate: RSSHUB_EXAMPLES[0].template,
     rsshubValue: "",
+    // WordPress
+    wpPerPage: 10,
+    wpSearch: "",
   });
 
   function resetForm() {
@@ -141,6 +151,8 @@ export function SourcesManager({ initial }: { initial: Source[] }) {
       url: "",
       rsshubTemplate: RSSHUB_EXAMPLES[0].template,
       rsshubValue: "",
+      wpPerPage: 10,
+      wpSearch: "",
     });
   }
 
@@ -185,6 +197,17 @@ export function SourcesManager({ initial }: { initial: Source[] }) {
       }
       body.type = form.webMode; // "RSS" o "URL"
       body.url = form.url.trim();
+    } else if (form.kind === "WORDPRESS") {
+      if (!form.url.trim()) {
+        setError("Pega la dirección del sitio WordPress (la raíz, no una entrada).");
+        return;
+      }
+      body.type = "WORDPRESS";
+      body.url = form.url.trim();
+      body.configJson = JSON.stringify({
+        perPage: form.wpPerPage,
+        ...(form.wpSearch.trim() ? { search: form.wpSearch.trim() } : {}),
+      });
     }
 
     const res = await fetch("/api/sources", {
@@ -301,6 +324,7 @@ export function SourcesManager({ initial }: { initial: Source[] }) {
                 <KindButton k="AI_RESEARCH" />
                 <KindButton k="APIFY" />
                 <KindButton k="WEB" />
+                <KindButton k="WORDPRESS" />
               </div>
             </div>
 
@@ -421,6 +445,58 @@ export function SourcesManager({ initial }: { initial: Source[] }) {
                     value={form.filters}
                     onChange={(filters) => setForm({ ...form, filters })}
                   />
+                </div>
+              </>
+            )}
+
+            {/* WORDPRESS */}
+            {form.kind === "WORDPRESS" && (
+              <>
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <Label htmlFor="s-wp-url">Dirección del sitio</Label>
+                  <Input
+                    id="s-wp-url"
+                    type="url"
+                    required
+                    value={form.url}
+                    onChange={(e) => setForm({ ...form, url: e.target.value })}
+                    placeholder="https://miblog.com"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    La raíz del sitio, no una entrada concreta. Leemos{" "}
+                    <span className="font-mono">/wp-json/wp/v2/posts</span>, que
+                    casi todos los WordPress publican sin necesidad de clave.
+                    Si el sitio la tiene cerrada, el refresco te lo dirá.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="s-wp-per-page">Entradas por refresco</Label>
+                  <Input
+                    id="s-wp-per-page"
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={form.wpPerPage}
+                    onChange={(e) =>
+                      setForm({ ...form, wpPerPage: Number(e.target.value) })
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    De la más reciente hacia atrás. Las repetidas no se duplican.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="s-wp-search">Filtrar por texto (opcional)</Label>
+                  <Input
+                    id="s-wp-search"
+                    value={form.wpSearch}
+                    onChange={(e) => setForm({ ...form, wpSearch: e.target.value })}
+                    placeholder="Ej. campaña"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Se lo pasamos al buscador del propio WordPress. En blanco,
+                    trae todas.
+                  </p>
                 </div>
               </>
             )}

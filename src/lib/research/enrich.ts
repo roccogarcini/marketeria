@@ -18,11 +18,56 @@ const MAX_CONTENT_CHARS = 20_000;
 // o un "enable javascript" — no lo guardamos como contenido completo.
 const MIN_USEFUL_CHARS = 400;
 
+/**
+ * Etiquetas que van DENTRO de una frase. Se borran sin dejar hueco: sustituir
+ * `<strong>` por un espacio partía las palabras y dejaba "negritas ." con el
+ * punto suelto.
+ */
+const INLINE_TAGS =
+  "a|abbr|b|big|cite|code|del|em|font|i|ins|kbd|mark|q|s|samp|small|span|strong|sub|sup|time|tt|u|var";
+
+/**
+ * Entidades con nombre más allá de las cinco de siempre. WordPress las usa a
+ * manta en castellano (&aacute;, &ntilde;, &laquo;…): sin traducirlas, el
+ * texto que llega al LLM va lleno de "p&aacute;rrafo".
+ */
+const NAMED_ENTITIES: Record<string, string> = {
+  aacute: "á", eacute: "é", iacute: "í", oacute: "ó", uacute: "ú",
+  Aacute: "Á", Eacute: "É", Iacute: "Í", Oacute: "Ó", Uacute: "Ú",
+  agrave: "à", egrave: "è", igrave: "ì", ograve: "ò", ugrave: "ù",
+  acirc: "â", ecirc: "ê", icirc: "î", ocirc: "ô", ucirc: "û",
+  auml: "ä", euml: "ë", iuml: "ï", ouml: "ö", uuml: "ü", Uuml: "Ü",
+  ntilde: "ñ", Ntilde: "Ñ", ccedil: "ç", Ccedil: "Ç",
+  atilde: "ã", otilde: "õ", aring: "å", oslash: "ø", szlig: "ß",
+  iexcl: "¡", iquest: "¿", ordf: "ª", ordm: "º", deg: "°",
+  laquo: "«", raquo: "»", ldquo: "\u201C", rdquo: "\u201D",
+  lsquo: "\u2018", rsquo: "\u2019", sbquo: "\u201A", bdquo: "\u201E",
+  hellip: "…", mdash: "—", ndash: "–", bull: "•", middot: "·",
+  euro: "€", pound: "£", yen: "¥", cent: "¢", curren: "¤",
+  copy: "©", reg: "®", trade: "™", sect: "§", para: "¶", dagger: "†",
+  times: "×", divide: "÷", plusmn: "±", frac12: "½", frac14: "¼", frac34: "¾",
+  larr: "←", rarr: "→", harr: "↔", prime: "′", Prime: "″",
+  ensp: " ", emsp: " ", thinsp: " ", shy: "", zwnj: "", zwj: "",
+};
+
 export type EnrichResult =
   | { status: "enriched"; chars: number }
   | { status: "already"; chars: number }
   | { status: "no_url" }
   | { status: "failed"; error: string };
+
+/**
+ * Un punto de código a carácter. Lo que no es imprimible se deja como estaba:
+ * devolver un espacio borraba entidades legítimas y juntaba palabras.
+ */
+function codePoint(n: number, original: string): string {
+  if (!Number.isFinite(n) || n < 32 || n > 0x10ffff) return original;
+  try {
+    return String.fromCodePoint(n);
+  } catch {
+    return original;
+  }
+}
 
 /** Aplana HTML a texto legible. Sin dependencias: regex por bloques. */
 export function extractMainText(html: string): string {
@@ -45,20 +90,22 @@ export function extractMainText(html: string): string {
   // Saltos de línea en cierres de bloque para conservar párrafos.
   s = s.replace(/<\/(p|div|section|h[1-6]|li|blockquote|tr|br)>/gi, "\n");
   s = s.replace(/<br\s*\/?>/gi, "\n");
-  // Fuera el resto de tags.
+  // Las etiquetas de dentro de la frase desaparecen sin dejar hueco; las
+  // demás sí dejan un espacio, o se pegarían las celdas de una tabla.
+  s = s.replace(new RegExp(`</?(?:${INLINE_TAGS})(?:\\s[^>]*)?>`, "gi"), "");
   s = s.replace(/<[^>]+>/g, " ");
-  // Entidades HTML básicas.
+  // Entidades HTML. El & literal se resuelve al final: hacerlo antes convierte
+  // un "&amp;aacute;" escrito a propósito en la á que no era.
   s = s
     .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, '"')
     .replace(/&#0?39;|&apos;/gi, "'")
-    .replace(/&#(\d+);/g, (_, code) => {
-      const n = Number(code);
-      return n > 31 && n < 65536 ? String.fromCharCode(n) : " ";
-    });
+    .replace(/&#[xX]([0-9a-fA-F]+);/g, (m, hex) => codePoint(parseInt(hex, 16), m))
+    .replace(/&#(\d+);/g, (m, code) => codePoint(Number(code), m))
+    .replace(/&([A-Za-z][A-Za-z0-9]{1,9});/g, (m, name) => NAMED_ENTITIES[name] ?? m)
+    .replace(/&amp;/gi, "&");
   // Compactar espacios conservando párrafos.
   s = s
     .split("\n")
