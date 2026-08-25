@@ -90,6 +90,21 @@ type FlatAsset = {
   contentTitle: string;
 };
 
+/*
+ * Color de los nodos del diagrama, según la regla 80/15/5 del manual:
+ *   activo     → lima (es LO que estás mirando; icono en marino)
+ *   destacado  → oliva (hallazgo nuevo, canal en vivo; icono en niebla)
+ *   el resto   → superficie neutra (icono en tinta/niebla según el tema)
+ * Antes casi todo era lima y el diagrama entero se leía en verde.
+ */
+function colorNodo(activo: boolean, destacado: boolean) {
+  if (activo) return { fill: "hsl(var(--primary))", icono: "text-primary-foreground" };
+  // Blanco fijo, no `text-background`: en oscuro el fondo es tinta y el icono
+  // se quedaba en oscuro sobre oliva, ilegible.
+  if (destacado) return { fill: "hsl(var(--accent-deep))", icono: "text-white" };
+  return { fill: "hsl(var(--muted))", icono: "text-foreground" };
+}
+
 export function SpiderDiagram({
   findings,
   ideas,
@@ -613,7 +628,7 @@ export function SpiderDiagram({
           className="pointer-events-none absolute inset-0 opacity-70"
           style={{
             background:
-              "radial-gradient(ellipse 50% 60% at 50% 50%, hsl(var(--primary) / 0.16), transparent 70%)",
+              "radial-gradient(ellipse 50% 60% at 50% 50%, hsl(var(--primary) / 0.05), transparent 70%)",
           }}
           aria-hidden
         />
@@ -642,13 +657,13 @@ export function SpiderDiagram({
           />
           <defs>
             <radialGradient id="core-grad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="hsl(var(--primary) / 0.18)" />
-              <stop offset="55%" stopColor="hsl(var(--primary) / 0.08)" />
+              <stop offset="0%" stopColor="hsl(var(--primary) / 0.07)" />
+              <stop offset="55%" stopColor="hsl(var(--primary) / 0.03)" />
               <stop offset="100%" stopColor="hsl(var(--primary) / 0)" />
             </radialGradient>
             <radialGradient id="idea-grad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="hsl(var(--primary) / 0.95)" />
-              <stop offset="70%" stopColor="hsl(var(--primary) / 0.35)" />
+              <stop offset="0%" stopColor="hsl(var(--primary) / 0.55)" />
+              <stop offset="70%" stopColor="hsl(var(--primary) / 0.18)" />
               <stop offset="100%" stopColor="hsl(var(--primary) / 0)" />
             </radialGradient>
             <radialGradient id="node-outer" cx="50%" cy="50%" r="50%">
@@ -816,7 +831,7 @@ export function SpiderDiagram({
                         cx={p.x}
                         cy={p.y}
                         r={NODE_R}
-                        fill={isActive ? "hsl(var(--accent-deep))" : "hsl(var(--primary))"}
+                        fill={colorNodo(isActive, true).fill}
                         stroke="hsl(var(--accent-deep))"
                         strokeWidth={isActive ? 2 : 1}
                       />
@@ -826,7 +841,9 @@ export function SpiderDiagram({
                         width={(NODE_R - 2) * 2}
                         height={(NODE_R - 2) * 2}
                       >
-                        <div className="flex h-full w-full items-center justify-center text-primary-foreground">
+                        <div
+                          className={`flex h-full w-full items-center justify-center ${colorNodo(isActive, true).icono}`}
+                        >
                           <Lightbulb className="h-6 w-6" />
                         </div>
                       </foreignObject>
@@ -872,13 +889,7 @@ export function SpiderDiagram({
                     cx={p.x}
                     cy={p.y}
                     r={NODE_R}
-                    fill={
-                      isActive
-                        ? "hsl(var(--accent-deep))"
-                        : isNew
-                          ? "hsl(var(--primary))"
-                          : "hsl(var(--accent-soft))"
-                    }
+                    fill={colorNodo(isActive, isNew).fill}
                     stroke="hsl(var(--accent-deep))"
                     strokeWidth={isActive ? 2 : 1}
                   />
@@ -888,7 +899,9 @@ export function SpiderDiagram({
                     width={(NODE_R - 2) * 2}
                     height={(NODE_R - 2) * 2}
                   >
-                    <div className="flex h-full w-full items-center justify-center text-primary-foreground">
+                    <div
+                      className={`flex h-full w-full items-center justify-center ${colorNodo(isActive, isNew).icono}`}
+                    >
                       <SourceIcon className="h-6 w-6" />
                     </div>
                   </foreignObject>
@@ -933,13 +946,7 @@ export function SpiderDiagram({
                     cx={ap.x}
                     cy={ap.y}
                     r={NODE_R}
-                    fill={
-                      isActive
-                        ? "hsl(var(--accent-deep))"
-                        : isLive
-                          ? "hsl(var(--primary))"
-                          : "hsl(var(--accent-soft))"
-                    }
+                    fill={colorNodo(isActive, isLive).fill}
                     stroke="hsl(var(--accent-deep))"
                     strokeWidth={isActive ? 2 : 1}
                   />
@@ -949,7 +956,9 @@ export function SpiderDiagram({
                     width={(NODE_R - 2) * 2}
                     height={(NODE_R - 2) * 2}
                   >
-                    <div className="flex h-full w-full items-center justify-center text-primary-foreground">
+                    <div
+                      className={`flex h-full w-full items-center justify-center ${colorNodo(isActive, isLive).icono}`}
+                    >
                       <ChannelIcon className="h-6 w-6" />
                     </div>
                   </foreignObject>
