@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { SpiderLogo } from "@/components/brand/spider-logo";
+import { MarketeriaWordmark } from "@/components/brand/marketeria-logo";
 
 function ResetForm() {
   const router = useRouter();
@@ -113,8 +113,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="glass-card w-full max-w-sm p-8">
       <div className="mb-8 flex flex-col items-center">
-        <SpiderLogo className="mb-3 h-14 w-14 text-foreground" />
-        <h1 className="font-serif text-2xl italic">SpAIder</h1>
+        <MarketeriaWordmark className="mb-4 h-10" />
         <p className="mt-1 text-sm text-muted-foreground">Nueva contraseña</p>
       </div>
       <Suspense fallback={<Loader2 className="mx-auto h-5 w-5 animate-spin" />}>

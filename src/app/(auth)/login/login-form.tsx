@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { SpiderLogo } from "@/components/brand/spider-logo";
+import { MarketeriaWordmark } from "@/components/brand/marketeria-logo";
 
 export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
   const router = useRouter();
@@ -17,7 +17,7 @@ export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }
   // AccessDenied: Google autenticó pero el email no está dado de alta aquí.
   const [error, setError] = useState(
     searchParams.get("error") === "AccessDenied"
-      ? "Tu cuenta de Google no está dada de alta en SpAIder. Pide acceso a un administrador."
+      ? "Tu cuenta de Google no está dada de alta en Marketería. Pide acceso a un administrador."
       : "",
   );
 
@@ -50,8 +50,7 @@ export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }
   return (
     <div className="glass-card w-full max-w-sm p-8">
       <div className="mb-8 flex flex-col items-center">
-        <SpiderLogo className="mb-3 h-14 w-14 text-foreground" />
-        <h1 className="font-serif text-2xl italic">SpAIder</h1>
+        <MarketeriaWordmark className="mb-4 h-10" priority />
         <p className="mt-1 text-sm text-muted-foreground">
           Acceso al pipeline editorial
         </p>
@@ -70,7 +69,7 @@ export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="flex h-10 w-full rounded-xl border border-border bg-background/60 px-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            placeholder="tu@spaider.local"
+            placeholder="tu@marketeria.mx"
           />
         </div>
 

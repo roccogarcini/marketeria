@@ -45,7 +45,7 @@ export async function POST(
 
   const systemPrompt =
     agent?.systemPrompt ??
-    "Eres un asistente editorial senior de SpAIder. Responde en español, conciso y útil.";
+    "Eres un asistente editorial senior de Marketería. Responde en español, conciso y útil.";
 
   // ── Vía agéntica: el agente usa herramientas para ver/registrar datos ────
   // Solo si hay un proveedor compatible con tool-calling (no Anthropic).

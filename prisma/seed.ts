@@ -20,11 +20,12 @@
  *     · 3 canales de EJEMPLO (LinkedIn, Newsletter, Instagram Carrusel)
  *     · 3 automatizaciones cron + 4 runs históricas
  *     · 2 chat sessions ejemplo
- *     · BrandProfile singleton con placeholders (se rellena desde /marca)
+ *     · BrandProfile singleton con la marca de Marketería (paleta, tono, logo)
  *     · AppSettings + 1 usuario ADMIN (desde env)
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { MARCA_MARKETERIA, logoDataUri } from "./marca-marketeria";
 
 const prisma = new PrismaClient();
 
@@ -84,23 +85,14 @@ async function seedAdminFromEnv() {
 
 async function seedBrandProfile() {
   // Placeholders genéricos: cada instalación define su marca desde /marca.
+  // `update: {}` a propósito: si la marca ya está escrita, un re-seed no la
+  // pisa. Para forzar la actualización: scripts/aplicar-marca.ts.
   await prisma.brandProfile.upsert({
     where: { id: "default" },
     update: {},
-    create: {
-      id: "default",
-      name: "Tu marca",
-      tone: "Define aquí tu tono (p. ej.: cercano, directo, técnico, formal...).",
-      voice:
-        "Define aquí tu voz: en qué persona hablas y a quién te diriges.",
-      audience:
-        "Define aquí tu audiencia: quién consume tu contenido y qué necesita.",
-      editorialLinesJson: JSON.stringify([]),
-      mustAvoid:
-        "Define aquí lo que tu marca nunca debe hacer o decir en su contenido.",
-    },
+    create: { id: "default", ...MARCA_MARKETERIA, logoDataUri: logoDataUri() },
   });
-  console.log("  ✓ BrandProfile singleton listo (placeholders — rellénalo en /marca).");
+  console.log("  ✓ BrandProfile de Marketería listo (paleta, tono y logo del manual).");
 }
 
 async function seedAppSettings() {

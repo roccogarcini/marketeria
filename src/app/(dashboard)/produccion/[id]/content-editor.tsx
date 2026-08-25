@@ -119,7 +119,7 @@ export function ContentEditor({ content }: { content: Content }) {
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="!text-3xl font-serif h-auto border-none px-0 bg-transparent"
+          className="!text-3xl font-sans font-medium h-auto border-none px-0 bg-transparent"
         />
       </header>
 

@@ -229,7 +229,7 @@ export default async function DashboardHome() {
         </h1>
         <p className="max-w-[64ch] text-[15px] text-muted-foreground">
           Tres pasos, un solo flujo: la IA investiga fuentes, tú apruebas las ideas
-          que valen, y SpAIder produce las piezas adaptadas a cada canal.
+          que valen, y Marketería produce las piezas adaptadas a cada canal.
         </p>
       </header>
 

@@ -11,10 +11,12 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-geist)", "Inter", "system-ui", "sans-serif"],
-        serif: ["var(--font-instrument-serif)", "Georgia", "serif"],
-        display: ["var(--font-instrument-serif)", "Georgia", "serif"],
-        num: ["var(--font-space-grotesk)", "ui-rounded", "system-ui", "sans-serif"],
+        sans: ["var(--font-archivo)", "Inter", "system-ui", "sans-serif"],
+        // "serif" ya no es serif: se mantiene el nombre de la clase para no
+        // tocar 40 ficheros, pero apunta al display de marca (Anton).
+        serif: ["var(--font-anton)", "Haettenschweiler", "Impact", "sans-serif"],
+        display: ["var(--font-anton)", "Haettenschweiler", "Impact", "sans-serif"],
+        num: ["var(--font-anton)", "Haettenschweiler", "Impact", "sans-serif"],
         mono: ["var(--font-jetbrains-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       colors: {

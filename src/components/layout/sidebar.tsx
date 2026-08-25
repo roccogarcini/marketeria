@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 import { NavLinks } from "./nav-links";
 import { UserMenu } from "./user-menu";
 import { ThemeToggle } from "./theme-toggle";
-import { SpiderLogo } from "@/components/brand/spider-logo";
+import { MarketeriaMark, MarketeriaWordmark } from "@/components/brand/marketeria-logo";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "spaider:sidebar-collapsed";
@@ -52,17 +52,12 @@ export function Sidebar({
         )}
       >
         {collapsed ? (
-          <SpiderLogo className="h-[30px] w-[30px] shrink-0 text-foreground" />
+          <MarketeriaMark className="h-[30px]" />
         ) : (
-          <>
-            <SpiderLogo className="h-[34px] w-[34px] shrink-0 text-foreground" />
-            <div className="min-w-0 flex-1">
-              <h1 className="font-serif text-[23px] italic leading-none tracking-tight text-foreground">
-                SpAIder
-              </h1>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Pipeline editorial</p>
-            </div>
-          </>
+          <div className="min-w-0 flex-1">
+            <MarketeriaWordmark className="h-[26px]" priority />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">Pipeline editorial</p>
+          </div>
         )}
         <button
           type="button"

@@ -1,4 +1,4 @@
-/* Service worker de spAIder — lo mínimo para que se pueda instalar como
+/* Service worker de Marketería — lo mínimo para que se pueda instalar como
  * aplicación.
  *
  * A propósito NO cachea nada: las pantallas se renderizan en el servidor y
@@ -38,7 +38,7 @@ self.addEventListener("fetch", (event) => {
             "<style>body{font-family:system-ui,sans-serif;background:#F5F4EF;color:#111;" +
             "display:grid;place-items:center;height:100vh;margin:0;text-align:center}" +
             "p{max-width:32ch;line-height:1.5}</style>" +
-            "<p>No hay conexión. spAIder necesita internet para trabajar; " +
+            "<p>No hay conexión. Marketería necesita internet para trabajar; " +
             "vuelve a abrirlo cuando la recuperes.</p>",
           { headers: { "Content-Type": "text/html; charset=utf-8" }, status: 503 },
         );

@@ -109,7 +109,7 @@ export async function DELETE(
     }
   }
 
-  const anonymizedEmail = `eliminado-${id.slice(0, 8)}@usuarios.spaider.local`;
+  const anonymizedEmail = `eliminado-${id.slice(0, 8)}@usuarios.marketeria.local`;
   const unusablePassword = await hashPassword(randomBytes(32).toString("hex"));
 
   await prisma.$transaction([

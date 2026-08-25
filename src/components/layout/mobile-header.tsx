@@ -5,7 +5,7 @@ import { Menu, X } from "lucide-react";
 import { NavLinks } from "./nav-links";
 import { UserMenu } from "./user-menu";
 import { ThemeToggle } from "./theme-toggle";
-import { SpiderLogo } from "@/components/brand/spider-logo";
+import { MarketeriaWordmark } from "@/components/brand/marketeria-logo";
 
 export function MobileHeader({
   user,
@@ -17,8 +17,7 @@ export function MobileHeader({
     <>
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card/80 px-4 py-3 backdrop-blur md:hidden">
         <div className="flex items-center gap-2">
-          <SpiderLogo className="h-7 w-7 text-foreground" />
-          <span className="font-serif text-lg italic leading-none">SpAIder</span>
+          <MarketeriaWordmark className="h-[22px]" priority />
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -41,7 +40,7 @@ export function MobileHeader({
           />
           <div className="relative ml-auto flex h-full w-72 flex-col border-l border-border bg-card p-4">
             <div className="mb-2 flex items-center justify-between">
-              <span className="font-serif text-lg italic leading-none">SpAIder</span>
+              <MarketeriaWordmark className="h-[22px]" />
               <button
                 type="button"
                 aria-label="Cerrar menú"

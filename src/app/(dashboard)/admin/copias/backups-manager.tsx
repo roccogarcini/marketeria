@@ -190,7 +190,7 @@ export function BackupsManager({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `spaider-${stamp}`;
+      a.download = `marketeria-${stamp}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -604,7 +604,7 @@ export function BackupsManager({
                 <b className="font-mono">{restoreKey?.replace("spaider/", "")}</b>.
               </p>
               <p className="text-sm text-destructive">
-                <b>Esta acción PISA los datos actuales de spAIder.</b> Todo lo creado o cambiado
+                <b>Esta acción PISA los datos actuales de Marketería.</b> Todo lo creado o cambiado
                 después de esa copia se perderá. No se puede deshacer.
               </p>
               <div className="flex flex-col gap-1">

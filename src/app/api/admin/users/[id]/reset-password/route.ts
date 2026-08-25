@@ -60,14 +60,14 @@ export async function POST(
   if (await isSmtpConfigured()) {
     const html = `
       <p>Hola ${created.user.name || ""},</p>
-      <p>Un administrador ha generado un enlace para restablecer tu contraseña en SpAIder. Pulsa el enlace (válido 1 hora):</p>
+      <p>Un administrador ha generado un enlace para restablecer tu contraseña en Marketería. Pulsa el enlace (válido 1 hora):</p>
       <p><a href="${link}">Restablecer mi contraseña</a></p>
       <p>Si no lo esperabas, contacta con tu administrador.</p>
     `;
     try {
       await sendMail(
         created.user.email,
-        "Restablecer tu contraseña — SpAIder",
+        "Restablecer tu contraseña — Marketería",
         html,
         `Restablece tu contraseña: ${link}`,
       );

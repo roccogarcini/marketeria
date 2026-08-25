@@ -34,10 +34,10 @@ import { brandUpdateShape } from "@/lib/brand/schema";
 import { produceIdea } from "@/lib/pipeline/produce";
 
 /**
- * Servidor MCP de SpAIder — endpoint /api/mcp (Streamable HTTP).
+ * Servidor MCP de Marketería — endpoint /api/mcp (Streamable HTTP).
  *
  * Conexión desde Claude Code:
- *   claude mcp add --transport http spaider https://TU-DOMINIO/api/mcp \
+ *   claude mcp add --transport http marketeria https://TU-DOMINIO/api/mcp \
  *     --header "Authorization: Bearer spk_..."
  *
  * (clientes MCP: mismo endpoint y cabecera.)
@@ -79,13 +79,13 @@ function buildHandler(auth: ApiKeyAuth) {
       // ── Lectura ─────────────────────────────────────────────────────
       server.tool(
         "list_channels",
-        "Lista los canales de publicación activos de SpAIder (id, nombre, tipo). Úsalo para conocer los channelIds antes de produce_content o create_creation.",
+        "Lista los canales de publicación activos de Marketería (id, nombre, tipo). Úsalo para conocer los channelIds antes de produce_content o create_creation.",
         {},
         async () => text(await listChannelsOp()),
       );
       server.tool(
         "list_findings",
-        "Lista hallazgos de investigación de SpAIder. status: NEW | SENT_TO_ANALYSIS | DISCARDED | PROMOTED.",
+        "Lista hallazgos de investigación de Marketería. status: NEW | SENT_TO_ANALYSIS | DISCARDED | PROMOTED.",
         {
           status: z.string().optional(),
           limit: z.number().int().min(1).max(100).optional(),
@@ -94,7 +94,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "list_ideas",
-        "Lista ideas editoriales de SpAIder. status: PROPOSED | APPROVED | REJECTED | ARCHIVED.",
+        "Lista ideas editoriales de Marketería. status: PROPOSED | APPROVED | REJECTED | ARCHIVED.",
         {
           status: z.string().optional(),
           limit: z.number().int().min(1).max(100).optional(),
@@ -123,7 +123,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "list_automations",
-        "Lista las automatizaciones de SpAIder con su programación (cron legible), si están activas, su última ejecución y el nº total de ejecuciones.",
+        "Lista las automatizaciones de Marketería con su programación (cron legible), si están activas, su última ejecución y el nº total de ejecuciones.",
         {
           limit: z.number().int().min(1).max(100).optional(),
         },
@@ -131,7 +131,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "list_automation_runs",
-        "Historial de ejecuciones de una automatización de SpAIder (estado, fechas y log recortado). Úsalo para comprobar a qué hora disparó el cron o depurar un fallo.",
+        "Historial de ejecuciones de una automatización de Marketería (estado, fechas y log recortado). Úsalo para comprobar a qué hora disparó el cron o depurar un fallo.",
         {
           automationId: z.string().min(1).max(128),
           limit: z.number().int().min(1).max(100).optional(),
@@ -143,19 +143,19 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "list_agents",
-        "Lista los agentes de chat de SpAIder con su systemPrompt completo, rol, proveedor/modelo asignado y parámetros de generación. Úsalo para conocer el agentId antes de update_agent_prompt.",
+        "Lista los agentes de chat de Marketería con su systemPrompt completo, rol, proveedor/modelo asignado y parámetros de generación. Úsalo para conocer el agentId antes de update_agent_prompt.",
         {},
         async () => text(await listAgentsOp()),
       );
       server.tool(
         "get_brand",
-        "Devuelve el perfil de marca de SpAIder (nombre, tono, voz, audiencia, líneas editoriales, qué evitar e identidad visual). Es el mismo perfil que se inyecta al producir contenido.",
+        "Devuelve el perfil de marca de Marketería (nombre, tono, voz, audiencia, líneas editoriales, qué evitar e identidad visual). Es el mismo perfil que se inyecta al producir contenido.",
         {},
         async () => text(await getBrandOp()),
       );
       server.tool(
         "get_dashboard_summary",
-        "Resumen del pipeline de SpAIder con las mismas cifras que el dashboard del panel: hallazgos, fuentes, ideas por revisar, ideas aprobadas, creaciones, ideas por estado, automatizaciones y canales activos.",
+        "Resumen del pipeline de Marketería con las mismas cifras que el dashboard del panel: hallazgos, fuentes, ideas por revisar, ideas aprobadas, creaciones, ideas por estado, automatizaciones y canales activos.",
         {},
         async () => text(await getDashboardSummaryOp()),
       );
@@ -163,7 +163,7 @@ function buildHandler(auth: ApiKeyAuth) {
       // ── Escritura (scope read_write) ────────────────────────────────
       server.tool(
         "create_automation",
-        "Crea y programa una automatización de investigación IA en SpAIder. Rastrea la web con el brief y crea hallazgos de forma recurrente. 'cron' es una expresión cron estándar de 5 campos (min hora díaMes mes díaSemana), zona Europe/Madrid; ej: diario 9:00='0 9 * * *', cada 6h='0 */6 * * *', lunes 8:00='0 8 * * 1', laborables 9:00='0 9 * * 1-5'. Si omites cron queda MANUAL (se lanza con run_automation).",
+        "Crea y programa una automatización de investigación IA en Marketería. Rastrea la web con el brief y crea hallazgos de forma recurrente. 'cron' es una expresión cron estándar de 5 campos (min hora díaMes mes díaSemana), zona Europe/Madrid; ej: diario 9:00='0 9 * * *', cada 6h='0 */6 * * *', lunes 8:00='0 8 * * 1', laborables 9:00='0 9 * * 1-5'. Si omites cron queda MANUAL (se lanza con run_automation).",
         {
           name: z.string().min(1).max(200),
           brief: z.string().min(8).max(4000),
@@ -179,7 +179,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "run_automation",
-        "Lanza a mano una automatización de SpAIder por su id y devuelve el estado (SUCCESS/ERROR) y el log de la ejecución.",
+        "Lanza a mano una automatización de Marketería por su id y devuelve el estado (SUCCESS/ERROR) y el log de la ejecución.",
         {
           automationId: z.string().min(1).max(128),
         },
@@ -191,7 +191,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "update_automation",
-        "Actualiza una automatización de SpAIder: nombre, brief de investigación, cron (misma validación que el panel; cadena vacía la deja MANUAL), maxItems y maxAgeMonths. Solo cambia los campos que envíes.",
+        "Actualiza una automatización de Marketería: nombre, brief de investigación, cron (misma validación que el panel; cadena vacía la deja MANUAL), maxItems y maxAgeMonths. Solo cambia los campos que envíes.",
         {
           automationId: z.string().min(1).max(128),
           name: z.string().min(1).max(200).optional(),
@@ -208,7 +208,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "toggle_automation",
-        "Activa (isActive=true) o pausa (isActive=false) una automatización de SpAIder y re-sincroniza su programación cron.",
+        "Activa (isActive=true) o pausa (isActive=false) una automatización de Marketería y re-sincroniza su programación cron.",
         {
           automationId: z.string().min(1).max(128),
           isActive: z.boolean(),
@@ -221,7 +221,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "delete_automation",
-        "Borra una automatización de SpAIder (y su historial de ejecuciones en cascada) y desprograma su cron. La acción no se puede deshacer.",
+        "Borra una automatización de Marketería (y su historial de ejecuciones en cascada) y desprograma su cron. La acción no se puede deshacer.",
         {
           automationId: z.string().min(1).max(128),
         },
@@ -233,7 +233,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "update_idea",
-        "Actualiza una idea editorial de SpAIder: título, ángulo, justificación, referenceUrl y/o estado. Las transiciones de estado son las del panel (p. ej. PROPOSED → APPROVED | REJECTED, APPROVED → ARCHIVED); una transición no permitida devuelve error.",
+        "Actualiza una idea editorial de Marketería: título, ángulo, justificación, referenceUrl y/o estado. Las transiciones de estado son las del panel (p. ej. PROPOSED → APPROVED | REJECTED, APPROVED → ARCHIVED); una transición no permitida devuelve error.",
         {
           ideaId: z.string().min(1).max(128),
           title: z.string().min(1).max(300).optional(),
@@ -250,7 +250,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "delete_idea",
-        "Borra una idea de SpAIder y, en cascada, sus comentarios y contenidos producidos (con sus creaciones). Devuelve los contadores de lo borrado. La acción no se puede deshacer.",
+        "Borra una idea de Marketería y, en cascada, sus comentarios y contenidos producidos (con sus creaciones). Devuelve los contadores de lo borrado. La acción no se puede deshacer.",
         {
           ideaId: z.string().min(1).max(128),
         },
@@ -262,7 +262,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "run_research",
-        "Lanza una investigación IA en SpAIder: busca en la web sobre el brief y crea hallazgos reales con URL y fecha. Por defecto solo devuelve piezas de los últimos 6 meses (ajustable con maxAgeMonths; el filtro no aplica si el brief pide histórico). Si no puede obtener resultados actuales, devuelve un error explicándolo.",
+        "Lanza una investigación IA en Marketería: busca en la web sobre el brief y crea hallazgos reales con URL y fecha. Por defecto solo devuelve piezas de los últimos 6 meses (ajustable con maxAgeMonths; el filtro no aplica si el brief pide histórico). Si no puede obtener resultados actuales, devuelve un error explicándolo.",
         {
           brief: z.string().min(8).max(4000),
           maxItems: z.number().int().min(3).max(12).optional(),
@@ -277,7 +277,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "create_finding",
-        "Inserta un hallazgo externo en la bandeja de investigación de SpAIder.",
+        "Inserta un hallazgo externo en la bandeja de investigación de Marketería.",
         {
           title: z.string().min(1).max(300),
           url: z.string().url().optional(),
@@ -292,7 +292,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "create_idea",
-        "Crea una idea editorial en SpAIder. approved=true (default) la deja lista para producir.",
+        "Crea una idea editorial en Marketería. approved=true (default) la deja lista para producir.",
         {
           title: z.string().min(1).max(300),
           angle: z.string().max(2000).optional(),
@@ -307,7 +307,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "create_creation",
-        "Inserta una creación YA HECHA (un copy, una newsletter, un post) en SpAIder, con su traza idea→contenido→creación. channelType acepta tipo (NEWSLETTER, LINKEDIN…) o nombre del canal.",
+        "Inserta una creación YA HECHA (un copy, una newsletter, un post) en Marketería, con su traza idea→contenido→creación. channelType acepta tipo (NEWSLETTER, LINKEDIN…) o nombre del canal.",
         {
           title: z.string().min(1).max(300),
           body: z.string().min(1).max(200_000),
@@ -322,7 +322,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "update_agent_prompt",
-        "Actualiza un agente de chat de SpAIder: systemPrompt, nombre, rol, temperature, maxTokens, icon, isActive y proveedor/modelo (misma validación que el panel de Agentes). Solo cambia los campos que envíes. Los agentes asignados a canales definen cómo se genera el contenido de ese canal.",
+        "Actualiza un agente de chat de Marketería: systemPrompt, nombre, rol, temperature, maxTokens, icon, isActive y proveedor/modelo (misma validación que el panel de Agentes). Solo cambia los campos que envíes. Los agentes asignados a canales definen cómo se genera el contenido de ese canal.",
         {
           agentId: z.string().min(1).max(128),
           ...agentPatchShape,
@@ -335,7 +335,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "update_channel_prompt",
-        "Actualiza el prompt editorial de un canal de SpAIder: systemPrompt (reglas de generación), templateMarkdown (ejemplo de output/estilo) y constraintsJson (restricciones como maxLength, formato o tono). Misma validación que el panel de Canales; null limpia un campo. Solo cambia los campos que envíes. Obtén el channelId con list_channels.",
+        "Actualiza el prompt editorial de un canal de Marketería: systemPrompt (reglas de generación), templateMarkdown (ejemplo de output/estilo) y constraintsJson (restricciones como maxLength, formato o tono). Misma validación que el panel de Canales; null limpia un campo. Solo cambia los campos que envíes. Obtén el channelId con list_channels.",
         {
           channelId: z.string().min(1).max(128),
           ...channelPromptPatchShape,
@@ -348,7 +348,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "update_brand",
-        "Actualiza el perfil de marca de SpAIder (el conocimiento editorial que se inyecta al producir contenido): nombre, tono, voz, audiencia, líneas editoriales, qué evitar e identidad visual. Misma validación que el panel Marca. Actualización parcial: solo cambia los campos que envíes; null limpia un campo.",
+        "Actualiza el perfil de marca de Marketería (el conocimiento editorial que se inyecta al producir contenido): nombre, tono, voz, audiencia, líneas editoriales, qué evitar e identidad visual. Misma validación que el panel Marca. Actualización parcial: solo cambia los campos que envíes; null limpia un campo.",
         {
           ...brandUpdateShape,
         },
@@ -360,7 +360,7 @@ function buildHandler(auth: ApiKeyAuth) {
       );
       server.tool(
         "produce_content",
-        "Produce en SpAIder el contenido de una idea APPROVED y sus creaciones para los canales indicados (usa los agentes de canal, la marca y la validación de carruseles).",
+        "Produce en Marketería el contenido de una idea APPROVED y sus creaciones para los canales indicados (usa los agentes de canal, la marca y la validación de carruseles).",
         {
           ideaId: z.string().min(1).max(128),
           channelIds: z.array(z.string()).max(20).optional(),

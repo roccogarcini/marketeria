@@ -488,7 +488,7 @@ export async function downloadCopy(key?: string): Promise<{ filename: string; da
   const blob = await client.getObject(target);
   if (!blob) throw new BackupError("La copia ya no existe en el bucket", 404);
   const data = decryptDump(blob);
-  const filename = target.replace(PREFIX, "spaider-").replace(/\.enc$/, "");
+  const filename = target.replace(PREFIX, "marketeria-").replace(/\.enc$/, "");
   return { filename, data };
 }
 

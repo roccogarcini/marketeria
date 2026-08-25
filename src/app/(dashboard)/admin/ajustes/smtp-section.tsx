@@ -151,7 +151,7 @@ export function SmtpSection({ initial }: { initial: SmtpConfig }) {
             id="smtp-from"
             value={form.from}
             onChange={(e) => setForm({ ...form, from: e.target.value })}
-            placeholder='"SpAIder" <no-reply@tudominio.com>'
+            placeholder='"Marketería" <no-reply@tudominio.com>'
           />
         </div>
       </div>

@@ -1,31 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Geist,
-  Instrument_Serif,
-  Space_Grotesk,
-  JetBrains_Mono,
-} from "next/font/google";
+import { Anton, Archivo, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { PwaRegister } from "@/components/pwa-register";
 
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist",
-  display: "swap",
-});
-
-const instrumentSerif = Instrument_Serif({
+// Tipografía del manual de Marketería: Anton para títulos y cifras (siempre
+// en caja alta), Archivo para cuerpo e interfaz. El mono se queda para lo que
+// es literalmente código (comandos MCP, claves), que Archivo no sabe alinear.
+const anton = Anton({
   subsets: ["latin"],
   weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-instrument-serif",
+  variable: "--font-anton",
   display: "swap",
 });
 
-const spaceGrotesk = Space_Grotesk({
+const archivo = Archivo({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-archivo",
   display: "swap",
 });
 
@@ -36,18 +27,18 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SpAIder",
+  title: "Marketería",
   description:
-    "SpAIder — sistema de marketing de contenidos: pipeline editorial con IA. La IA investiga fuentes, tú apruebas las ideas, y SpAIder produce las piezas adaptadas a cada canal.",
+    "Marketería — pipeline editorial con IA. La IA investiga fuentes, tú apruebas las ideas, y Marketería produce las piezas adaptadas a cada canal.",
   // Instalada en iOS: a pantalla completa y con su nombre corto bajo el icono.
-  appleWebApp: { capable: true, title: "SpAIder", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Marketería", statusBarStyle: "default" },
 };
 
 // Barra del sistema a juego con el fondo de la app en cada tema.
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F5F4EF" },
-    { media: "(prefers-color-scheme: dark)", color: "#0E0E0C" },
+    { media: "(prefers-color-scheme: light)", color: "#F2F3F6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B1230" },
   ],
 };
 
@@ -60,7 +51,7 @@ export default function RootLayout({
     <html
       lang="es"
       suppressHydrationWarning
-      className={`${geist.variable} ${instrumentSerif.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
+      className={`${archivo.variable} ${anton.variable} ${jetbrainsMono.variable}`}
     >
       <body className="relative min-h-screen font-sans antialiased">
         <Providers>{children}</Providers>

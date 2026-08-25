@@ -86,7 +86,7 @@ export function ApiKeysManager({
   // URLs reales de conexión de ESTA instancia + copiar al portapapeles.
   const mcpUrl = baseUrl ? `${baseUrl}/api/mcp` : "/api/mcp";
   const restUrl = baseUrl ? `${baseUrl}/api/v1` : "/api/v1";
-  const mcpCommand = `claude mcp add --transport http spaider ${mcpUrl} --header "Authorization: Bearer spk_..."`;
+  const mcpCommand = `claude mcp add --transport http marketeria ${mcpUrl} --header "Authorization: Bearer spk_..."`;
   const [copiedWhat, setCopiedWhat] = useState<string | null>(null);
   async function copyText(what: string, value: string) {
     await navigator.clipboard.writeText(value);
@@ -328,7 +328,7 @@ POST ${restUrl}/produce    { "ideaId": "...", "channelIds": [] }  # producir`}
         <div className="flex flex-col gap-1.5">
           <p className="font-medium">MCP (Claude Code y otros agentes)</p>
           <pre className="overflow-x-auto rounded-lg bg-background/60 p-3 font-mono text-xs leading-relaxed">
-{`claude mcp add --transport http spaider ${mcpUrl} \\
+{`claude mcp add --transport http marketeria ${mcpUrl} \\
   --header "Authorization: Bearer spk_..."`}
           </pre>
           <p className="text-xs text-muted-foreground">

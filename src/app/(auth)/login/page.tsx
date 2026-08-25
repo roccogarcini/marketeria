@@ -14,13 +14,13 @@ export default async function LoginPage() {
       {/* Lado editorial — solo en pantallas grandes */}
       <div className="hidden flex-col gap-6 lg:flex">
         <p className="font-mono text-[11.5px] uppercase tracking-[0.12em] text-muted-foreground before:mr-2 before:inline-block before:h-px before:w-6 before:bg-muted-foreground before:align-middle before:content-['']">
-          SpAIder · Pipeline editorial
+          Marketería · Pipeline editorial
         </p>
-        <h1 className="font-serif text-[clamp(40px,4.5vw,56px)] font-normal leading-[1.05] tracking-[-0.02em] text-foreground">
+        <h1 className="font-serif text-[clamp(40px,4.6vw,58px)] font-normal leading-[0.96] tracking-[0.005em] text-foreground">
           Convierte <span className="wavy">señales sueltas</span> en publicaciones con criterio.
         </h1>
         <p className="max-w-[38ch] text-[15px] leading-relaxed text-muted-foreground">
-          La IA investiga tus fuentes, tú apruebas las ideas que valen y SpAIder
+          La IA investiga tus fuentes, tú apruebas las ideas que valen y Marketería
           produce las piezas adaptadas a cada canal.
         </p>
         <div className="mt-2 flex items-center gap-6 border-t border-border/50 pt-5">

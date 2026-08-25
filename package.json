@@ -1,8 +1,8 @@
 {
-  "name": "spaider",
+  "name": "marketeria",
   "version": "0.1.0",
   "private": true,
-  "description": "SpAIder — sistema interno de marketing de contenidos con pipeline editorial de 5 fases, 100% API multi-proveedor LLM.",
+  "description": "Marketería — sistema interno de marketing de contenidos con pipeline editorial de 5 fases, 100% API multi-proveedor LLM.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

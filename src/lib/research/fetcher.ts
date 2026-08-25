@@ -39,7 +39,7 @@ import { fetchWithRetry } from "@/lib/net/retry";
 
 const FETCH_TIMEOUT_MS = 15_000;
 const MAX_REDIRECTS = 5;
-const USER_AGENT = "SpAIderBot/1.0";
+const USER_AGENT = "MarketeriaBot/1.0";
 const DEFAULT_MAX_RESPONSE_BYTES = 5_000_000; // 5 MB
 
 /**

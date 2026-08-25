@@ -288,7 +288,7 @@ export function IdeaDetail({
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="h-auto border-none bg-transparent px-0 font-serif text-3xl focus-visible:ring-0"
+          className="h-auto border-none bg-transparent px-0 font-sans text-3xl font-medium focus-visible:ring-0"
           placeholder="Título de la idea"
         />
       </header>

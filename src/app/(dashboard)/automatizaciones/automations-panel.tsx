@@ -612,7 +612,7 @@ export function AutomationsPanel({
           <h1 className="display-md">Automatizaciones</h1>
           <p className="text-sm text-muted-foreground">
             Dispara tareas manualmente o en un horario programado. Requiere
-            que la máquina de SpAIder esté encendida en el momento del cron.
+            que la máquina de Marketería esté encendida en el momento del cron.
           </p>
         </div>
         <Button onClick={openNew} className="gap-1.5">

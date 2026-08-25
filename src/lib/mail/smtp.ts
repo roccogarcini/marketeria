@@ -100,7 +100,7 @@ async function getTransport() {
       secure: cfg.secure,
       auth: cfg.user && pass ? { user: cfg.user, pass } : undefined,
     }),
-    from: cfg.from || cfg.user || "no-reply@spaider.local",
+    from: cfg.from || cfg.user || "no-reply@marketeria.mx",
   };
 }
 

@@ -4,7 +4,7 @@ import { requireApiKey } from "@/lib/api-keys/auth";
 import { createCreationOp } from "@/lib/api/operations";
 
 // POST /api/v1/creations — inserta una creación YA HECHA fuera (un copy, una
-// newsletter…) en SpAIder. Crea la traza idea → contenido → creación para que
+// newsletter…) en Marketería. Crea la traza idea → contenido → creación para que
 // aparezca en el pipeline. Canal opcional por id o por tipo/nombre.
 // Requiere scope read_write.
 const schema = z.object({

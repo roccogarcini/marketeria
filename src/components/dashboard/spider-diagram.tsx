@@ -624,7 +624,7 @@ export function SpiderDiagram({
           preserveAspectRatio="xMidYMid meet"
           className="block h-full w-full touch-none select-none"
           role="img"
-          aria-label="Diagrama tipo araña del pipeline editorial SpAIder"
+          aria-label="Diagrama tipo araña del pipeline editorial Marketería"
           onPointerDown={onBgPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

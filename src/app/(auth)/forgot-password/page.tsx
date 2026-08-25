@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { SpiderLogo } from "@/components/brand/spider-logo";
+import { MarketeriaWordmark } from "@/components/brand/marketeria-logo";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -25,15 +25,14 @@ export default function ForgotPasswordPage() {
   return (
     <div className="glass-card w-full max-w-sm p-8">
       <div className="mb-8 flex flex-col items-center">
-        <SpiderLogo className="mb-3 h-14 w-14 text-foreground" />
-        <h1 className="font-serif text-2xl italic">SpAIder</h1>
+        <MarketeriaWordmark className="mb-4 h-10" />
         <p className="mt-1 text-sm text-muted-foreground">Recuperar contraseña</p>
       </div>
 
       {sent ? (
         <div className="flex flex-col gap-4 text-sm">
           <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-3 text-foreground">
-            Si el email existe en SpAIder, te hemos enviado un enlace para
+            Si el email existe en Marketería, te hemos enviado un enlace para
             restablecer la contraseña. Revisa tu bandeja (y el spam).
           </p>
           <Link href="/login" className="text-center text-sm text-foreground hover:underline">

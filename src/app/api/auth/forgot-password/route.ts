@@ -49,14 +49,14 @@ export async function POST(req: Request) {
     const link = `${await baseUrl()}/reset-password?token=${created.token}`;
     const html = `
       <p>Hola ${created.user.name || ""},</p>
-      <p>Has solicitado restablecer tu contraseña en SpAIder. Pulsa el enlace (válido 1 hora):</p>
+      <p>Has solicitado restablecer tu contraseña en Marketería. Pulsa el enlace (válido 1 hora):</p>
       <p><a href="${link}">Restablecer mi contraseña</a></p>
       <p>Si no fuiste tú, ignora este correo.</p>
     `;
     try {
       await sendMail(
         created.user.email,
-        "Restablecer tu contraseña — SpAIder",
+        "Restablecer tu contraseña — Marketería",
         html,
         `Restablece tu contraseña: ${link}`,
       );

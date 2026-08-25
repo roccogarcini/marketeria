@@ -25,7 +25,7 @@ export const AGENT_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: "listar_ideas",
       description:
-        "Lista las ideas editoriales registradas en SpAIder. status opcional: PROPOSED | APPROVED | REJECTED | ARCHIVED.",
+        "Lista las ideas editoriales registradas en Marketería. status opcional: PROPOSED | APPROVED | REJECTED | ARCHIVED.",
       parameters: {
         type: "object",
         properties: {
