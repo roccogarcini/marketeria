@@ -50,7 +50,7 @@ export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }
   return (
     <div className="glass-card w-full max-w-sm p-8">
       <div className="mb-8 flex flex-col items-center">
-        <MarketeriaWordmark className="mb-4 h-10" priority />
+        <MarketeriaWordmark className="mb-5 h-14" priority />
         <p className="mt-1 text-sm text-muted-foreground">
           Acceso al pipeline editorial
         </p>

@@ -17,7 +17,7 @@ export function MobileHeader({
     <>
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card/80 px-4 py-3 backdrop-blur md:hidden">
         <div className="flex items-center gap-2">
-          <MarketeriaWordmark className="h-[22px]" priority />
+          <MarketeriaWordmark className="h-8" priority />
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -40,7 +40,7 @@ export function MobileHeader({
           />
           <div className="relative ml-auto flex h-full w-72 flex-col border-l border-border bg-card p-4">
             <div className="mb-2 flex items-center justify-between">
-              <MarketeriaWordmark className="h-[22px]" />
+              <MarketeriaWordmark className="h-8" />
               <button
                 type="button"
                 aria-label="Cerrar menú"

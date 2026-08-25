@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="glass-card w-full max-w-sm p-8">
       <div className="mb-8 flex flex-col items-center">
-        <MarketeriaWordmark className="mb-4 h-10" />
+        <MarketeriaWordmark className="mb-5 h-14" />
         <p className="mt-1 text-sm text-muted-foreground">Recuperar contraseña</p>
       </div>
 

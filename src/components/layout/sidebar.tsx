@@ -52,10 +52,10 @@ export function Sidebar({
         )}
       >
         {collapsed ? (
-          <MarketeriaMark className="h-[30px]" />
+          <MarketeriaMark className="h-9" />
         ) : (
           <div className="min-w-0 flex-1">
-            <MarketeriaWordmark className="h-[26px]" priority />
+            <MarketeriaWordmark className="h-[40px]" priority />
             <p className="mt-1.5 text-[11px] text-muted-foreground">Pipeline editorial</p>
           </div>
         )}
