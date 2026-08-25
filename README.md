@@ -1,4 +1,4 @@
-# SpAIder
+# Marketería
 
 Sistema de marketing de contenidos con un pipeline editorial de cuatro fases:
 
@@ -9,6 +9,11 @@ apruebas las que valen, y produce cada pieza adaptada al canal que toque.
 
 > **Stack**: Next.js 15 · React 19 · TypeScript · Prisma 6 · PostgreSQL 16 ·
 > NextAuth 5 · Tailwind + shadcn/ui · Apify · YouTube Data API.
+
+> **Fuentes de entrada**: además de RSS, URL, Apify y la investigación con IA,
+> hay dos que traen el material sin salir a buscarlo — **WordPress** (por la
+> REST API del propio sitio: cuerpo completo, autor y fecha) y **WhatsApp**
+> (los mensajes que llegan al número de WhatsApp Business, por webhook de Meta).
 
 Se puede **instalar como aplicación** en el móvil y en el escritorio: el
 navegador ofrece «Instalar» y queda con su icono, a pantalla completa.

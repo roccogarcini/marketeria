@@ -1,15 +1,15 @@
-# Desplegar spAIder en EasyPanel
+# Desplegar Marketería en EasyPanel
 
-Guía self-service para montar tu propia instancia de spAIder. No hace falta ser
+Guía self-service para montar tu propia instancia de Marketería. No hace falta ser
 programador. Sigue los pasos en orden.
 
-spAIder se despliega como **un solo servicio de tipo Compose** que levanta dos
+Marketería se despliega como **un solo servicio de tipo Compose** que levanta dos
 contenedores:
 
 | Servicio | Qué es                   | Imagen / build              |
 |----------|--------------------------|-----------------------------|
 | `db`     | Base de datos PostgreSQL | `postgres:16`               |
-| `app`    | spAIder (Next.js)        | build desde el `Dockerfile` |
+| `app`    | Marketería (Next.js)        | build desde el `Dockerfile` |
 
 Todo eso ya está descrito en el fichero **`docker-compose.easypanel.yml`** de la
 raíz del repositorio. No hay que crear la base de datos aparte: el compose la
@@ -29,9 +29,9 @@ cifradas en la base de datos.
 Necesitas:
 
 - Un servidor con **EasyPanel** instalado.
-- El proyecto de spAIder en un repositorio de **GitHub** (tuyo).
+- El proyecto de Marketería en un repositorio de **GitHub** (tuyo).
 - Un **dominio o subdominio** apuntando a ese servidor, p. ej.
-  `spaider.tudominio.com`. Si aún no lo tienes, vale el dominio automático que
+  `marketeria.tudominio.com`. Si aún no lo tienes, vale el dominio automático que
   asigna EasyPanel.
 - (Para después) una clave de OpenAI u otro proveedor. No hace falta al
   desplegar.
@@ -80,7 +80,7 @@ mínimo** o el arranque falla.
 
 ## 3. Crea el servicio en EasyPanel
 
-1. En EasyPanel: **Create Project** → ponle un nombre, p. ej. `spaider`.
+1. En EasyPanel: **Create Project** → ponle un nombre, p. ej. `marketeria`.
 2. Dentro del proyecto: **Add Service → Compose**. Tipo **Compose**, no App.
 3. En **Source**, pestaña **Git**, pon la dirección de tu repositorio y la rama
    `main`.
@@ -117,7 +117,7 @@ que está en mayúsculas por tus valores del paso 2:
 DB_PASSWORD=EL-OPENSSL-HEX
 NEXTAUTH_SECRET=EL-PRIMER-OPENSSL-BASE64
 ENCRYPTION_KEY=EL-SEGUNDO-OPENSSL-BASE64
-NEXTAUTH_URL=https://spaider.tudominio.com
+NEXTAUTH_URL=https://marketeria.tudominio.com
 ADMIN_EMAIL=tu@correo.com
 ADMIN_PASSWORD=MINIMO-8-CARACTERES
 ```
@@ -151,7 +151,7 @@ Opcionales, con valor por defecto razonable (solo si quieres cambiarlas):
 > ese fichero los secretos vienen vacíos a propósito. Si lo pegas sin rellenar, el
 > despliegue se para diciendo `required variable DB_PASSWORD is missing a value`.
 
-> Las **claves de IA NO van aquí.** spAIder arranca sin ellas (modo degradado) y
+> Las **claves de IA NO van aquí.** Marketería arranca sin ellas (modo degradado) y
 > las configuras después desde el panel (paso 7).
 
 `ADMIN_EMAIL` y `ADMIN_PASSWORD` solo actúan en el **primer arranque**, si la base
@@ -171,7 +171,10 @@ primer login.
 El primer despliegue tarda unos minutos porque compila la aplicación. En los logs
 verás, en este orden:
 
-1. `[db] Contraseña de spaider sincronizada con DB_PASSWORD.` → base de datos lista.
+1. `[db] Contraseña de spaider sincronizada con DB_PASSWORD.` → base de datos
+   lista. (El usuario interno de Postgres se sigue llamando `spaider`: no es un
+   resto del rebrand sin hacer, es que renombrarlo dejaría cualquier copia ya
+   hecha sin poder restaurarse.)
 2. `[entrypoint] aplicando migraciones...` → prepara las tablas.
 3. `[bootstrap-admin] ADMIN creado: tu@correo.com` → crea tu administrador.
 4. `[entrypoint] arrancando el servidor...` → la app está en marcha.
@@ -190,7 +193,7 @@ dos servicios estén en verde (**healthy**).
 
 ## 6. Primer login
 
-1. Abre `https://spaider.tudominio.com`.
+1. Abre `https://marketeria.tudominio.com`.
 2. Entra con `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 3. **Cambia la contraseña** desde **Perfil**. Hecho esto, puedes borrar
    `ADMIN_EMAIL` y `ADMIN_PASSWORD` de las variables del servicio.
@@ -199,7 +202,7 @@ dos servicios estén en verde (**healthy**).
 
 ## 7. Conecta tus proveedores
 
-spAIder funciona sin claves, pero para investigar y producir contenido necesita
+Marketería funciona sin claves, pero para investigar y producir contenido necesita
 al menos un proveedor de IA:
 
 1. Ve a **Admin → Proveedores**.
@@ -211,7 +214,39 @@ añadas una clave, las funciones que la necesitan te avisan en lugar de romperse
 
 ---
 
-## 8. Copias de seguridad
+## 8. Entrada de WhatsApp (opcional)
+
+Esta es la parte que **solo funciona ya desplegado**: Meta tiene que poder
+llamar a tu servidor desde internet, y `localhost` no le vale.
+
+1. En Marketería: **Admin → Ajustes → WhatsApp (entrada)**.
+2. Copia la **URL de devolución de llamada** que te muestra ahí. Es
+   `https://tu-dominio/api/webhooks/whatsapp`.
+3. Inventa un **token de verificación** (una cadena larga cualquiera) y pégalo
+   en el campo. Copia el **App Secret** de Meta → tu app → Configuración →
+   Básica y pégalo en el suyo. Enciende el interruptor y **Guarda**.
+4. En Meta → tu app → **WhatsApp → Configuración → Webhook**: pega la URL, pega
+   el MISMO token de verificación, y **Verificar y guardar**.
+5. Suscríbete al campo **`messages`**.
+
+A partir de ahí, cada mensaje que llegue a tu número de WhatsApp Business
+aparece en la bandeja de hallazgos, con quién escribe, cuándo y qué dijo.
+
+Los dos secretos se guardan **cifrados** con tu `ENCRYPTION_KEY`, igual que las
+claves de IA. La pantalla nunca los vuelve a enseñar: solo dice si están puestos.
+
+> **Si Meta dice "The callback URL or verify token couldn't be validated"**, es
+> una de tres: el interruptor está en Inactivo, el token no es idéntico a los
+> dos lados, o el dominio todavía no resuelve. El webhook falla cerrado a
+> propósito: mientras le falte cualquiera de las dos piezas, rechaza todo.
+
+> **De los adjuntos se guarda la referencia, no el fichero.** De una foto queda
+> su pie de texto y el id del adjunto en Meta, no la imagen. Descargarla
+> exigiría un token de Graph y guardar binarios de terceros en tu servidor.
+
+---
+
+## 9. Copias de seguridad
 
 - Desde **Admin → Copias** gestionas las copias de la base de datos (la app
   incluye `pg_dump` para volcarla).
