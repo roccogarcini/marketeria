@@ -1,5 +1,7 @@
 # Environment
 .env
+# Secretos de producción generados para pegar en EasyPanel
+*-NO-SUBIR.txt
 .env.local
 .env.production
 .env*.local
